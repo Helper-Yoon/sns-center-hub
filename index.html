@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SNS센터 업무 허브</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a0a;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 32px;
+            font-weight: bold;
+            color: #4A9EFF;
+        }
+
+        .menu-container {
+            background: #1a1a1a;
+            border-radius: 12px;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.5);
+            overflow: hidden;
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            padding: 20px 24px;
+            border-bottom: 1px solid #2a2a2a;
+            text-decoration: none;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .menu-item:last-child {
+            border-bottom: none;
+        }
+
+        .menu-item:hover {
+            background: #252525;
+            padding-left: 28px;
+        }
+
+        .menu-icon {
+            width: 40px;
+            height: 40px;
+            background: #1E6FFF;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 16px;
+            color: white;
+            font-size: 18px;
+        }
+
+        .menu-content {
+            flex: 1;
+        }
+
+        .menu-title {
+            font-size: 16px;
+            font-weight: 500;
+            color: #ffffff;
+            margin-bottom: 4px;
+        }
+
+        .menu-desc {
+            font-size: 13px;
+            color: #8a8a8a;
+        }
+
+        .menu-arrow {
+            color: #4A9EFF;
+            font-size: 20px;
+        }
+
+        .settings-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 50px;
+            height: 50px;
+            background: #1E6FFF;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(30,111,255,0.3);
+            transition: all 0.3s;
+            border: none;
+        }
+
+        .settings-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(30,111,255,0.4);
+        }
+
+        /* 비밀번호 모달 */
+        .password-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .password-modal.active {
+            display: flex;
+        }
+
+        .password-box {
+            background: #1a1a1a;
+            border-radius: 12px;
+            padding: 30px;
+            width: 300px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+
+        .password-title {
+            color: #ffffff;
+            font-size: 18px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .password-input {
+            width: 100%;
+            padding: 12px;
+            background: #0a0a0a;
+            border: 1px solid #2a2a2a;
+            border-radius: 6px;
+            color: white;
+            font-size: 16px;
+            text-align: center;
+            letter-spacing: 5px;
+        }
+
+        .password-input:focus {
+            outline: none;
+            border-color: #1E6FFF;
+        }
+
+        .password-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .password-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .password-confirm {
+            background: #1E6FFF;
+            color: white;
+        }
+
+        .password-confirm:hover {
+            background: #1859d6;
+        }
+
+        .password-cancel {
+            background: #2a2a2a;
+            color: #8a8a8a;
+        }
+
+        .password-cancel:hover {
+            background: #333333;
+        }
+
+        .password-error {
+            color: #ff4444;
+            font-size: 12px;
+            text-align: center;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .settings-panel {
+            position: fixed;
+            bottom: 90px;
+            right: 30px;
+            background: #1a1a1a;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            padding: 20px;
+            width: 250px;
+            display: none;
+            z-index: 1000;
+        }
+
+        .settings-panel.active {
+            display: block;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .settings-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 15px;
+        }
+
+        .settings-item {
+            margin-bottom: 12px;
+        }
+
+        .settings-label {
+            font-size: 12px;
+            color: #8a8a8a;
+            margin-bottom: 4px;
+        }
+
+        .settings-input {
+            width: 100%;
+            padding: 8px;
+            background: #0a0a0a;
+            border: 1px solid #2a2a2a;
+            border-radius: 6px;
+            font-size: 12px;
+            color: white;
+        }
+
+        .settings-input:focus {
+            outline: none;
+            border-color: #1E6FFF;
+        }
+
+        .settings-save {
+            width: 100%;
+            padding: 8px;
+            background: #1E6FFF;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .settings-save:hover {
+            background: #1859d6;
+        }
+
+        @media (max-width: 480px) {
+            .menu-item {
+                padding: 16px 20px;
+            }
+            
+            .settings-btn {
+                width: 45px;
+                height: 45px;
+                bottom: 20px;
+                right: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">SNS센터 업무 허브</div>
+        
+        <div class="menu-container" id="menuContainer">
+            <a href="https://channeltalk-server.onrender.com/" class="menu-item" target="_blank">
+                <div class="menu-icon">💬</div>
+                <div class="menu-content">
+                    <div class="menu-title">채널톡 미답변 상담 모니터 프로그램</div>
+                    <div class="menu-desc">미답변 상담 모니터링</div>
+                </div>
+                <div class="menu-arrow">→</div>
+            </a>
+
+            <a href="https://ajdsns.vercel.app/" class="menu-item" target="_blank">
+                <div class="menu-icon">📊</div>
+                <div class="menu-content">
+                    <div class="menu-title">SNS센터 실적보고</div>
+                    <div class="menu-desc">실적 입력 및 관리</div>
+                </div>
+                <div class="menu-arrow">→</div>
+            </a>
+        </div>
+    </div>
+
+    <button class="settings-btn" id="settingsBtn">⚙️</button>
+
+    <!-- 비밀번호 모달 -->
+    <div class="password-modal" id="passwordModal">
+        <div class="password-box">
+            <div class="password-title">비밀번호 입력</div>
+            <input type="password" class="password-input" id="passwordInput" placeholder="****" maxlength="4">
+            <div class="password-error" id="passwordError">비밀번호가 틀렸습니다</div>
+            <div class="password-buttons">
+                <button class="password-btn password-cancel" onclick="closePasswordModal()">취소</button>
+                <button class="password-btn password-confirm" onclick="checkPassword()">확인</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="settings-panel" id="settingsPanel">
+        <div class="settings-title">메뉴 추가</div>
+        <div class="settings-item">
+            <div class="settings-label">메뉴 이름</div>
+            <input type="text" class="settings-input" id="menuName" placeholder="예: 보고서 작성">
+        </div>
+        <div class="settings-item">
+            <div class="settings-label">설명</div>
+            <input type="text" class="settings-input" id="menuDesc" placeholder="예: 월간 보고서">
+        </div>
+        <div class="settings-item">
+            <div class="settings-label">URL</div>
+            <input type="text" class="settings-input" id="menuUrl" placeholder="https://...">
+        </div>
+        <div class="settings-item">
+            <div class="settings-label">아이콘 (이모지)</div>
+            <input type="text" class="settings-input" id="menuIcon" placeholder="📝" maxlength="2">
+        </div>
+        <button class="settings-save" onclick="addMenu()">메뉴 추가</button>
+    </div>
+
+    <script>
+        const PASSWORD = '3504';
+
+        // 설정 버튼 클릭 시 비밀번호 모달
+        document.getElementById('settingsBtn').addEventListener('click', function() {
+            document.getElementById('passwordModal').classList.add('active');
+            document.getElementById('passwordInput').focus();
+        });
+
+        // 비밀번호 확인
+        function checkPassword() {
+            const input = document.getElementById('passwordInput').value;
+            const errorMsg = document.getElementById('passwordError');
+            
+            if (input === PASSWORD) {
+                closePasswordModal();
+                document.getElementById('settingsPanel').classList.add('active');
+            } else {
+                errorMsg.style.display = 'block';
+                document.getElementById('passwordInput').value = '';
+                setTimeout(() => {
+                    errorMsg.style.display = 'none';
+                }, 2000);
+            }
+        }
+
+        // 비밀번호 모달 닫기
+        function closePasswordModal() {
+            document.getElementById('passwordModal').classList.remove('active');
+            document.getElementById('passwordInput').value = '';
+            document.getElementById('passwordError').style.display = 'none';
+        }
+
+        // 엔터키로 비밀번호 확인
+        document.getElementById('passwordInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                checkPassword();
+            }
+        });
+
+        // 메뉴 추가 기능
+        function addMenu() {
+            const name = document.getElementById('menuName').value;
+            const desc = document.getElementById('menuDesc').value;
+            const url = document.getElementById('menuUrl').value;
+            const icon = document.getElementById('menuIcon').value || '📋';
+
+            if (!name || !url) {
+                alert('메뉴 이름과 URL은 필수입니다.');
+                return;
+            }
+
+            // 새 메뉴 생성
+            const newMenu = document.createElement('a');
+            newMenu.href = url;
+            newMenu.className = 'menu-item';
+            newMenu.target = '_blank';
+            newMenu.innerHTML = `
+                <div class="menu-icon">${icon}</div>
+                <div class="menu-content">
+                    <div class="menu-title">${name}</div>
+                    <div class="menu-desc">${desc || ''}</div>
+                </div>
+                <div class="menu-arrow">→</div>
+            `;
+
+            // 메뉴 컨테이너에 추가
+            document.getElementById('menuContainer').appendChild(newMenu);
+
+            // 입력 필드 초기화
+            document.getElementById('menuName').value = '';
+            document.getElementById('menuDesc').value = '';
+            document.getElementById('menuUrl').value = '';
+            document.getElementById('menuIcon').value = '';
+
+            // 설정 패널 닫기
+            document.getElementById('settingsPanel').classList.remove('active');
+
+            // 로컬 스토리지에 저장
+            saveMenus();
+        }
+
+        // 메뉴 저장
+        function saveMenus() {
+            const menus = [];
+            document.querySelectorAll('.menu-item').forEach(item => {
+                if (item.href) {
+                    menus.push({
+                        title: item.querySelector('.menu-title').textContent,
+                        desc: item.querySelector('.menu-desc').textContent,
+                        url: item.href,
+                        icon: item.querySelector('.menu-icon').textContent
+                    });
+                }
+            });
+            localStorage.setItem('customMenus', JSON.stringify(menus));
+        }
+
+        // 페이지 로드 시 저장된 메뉴 불러오기
+        window.addEventListener('load', function() {
+            const savedMenus = localStorage.getItem('customMenus');
+            if (savedMenus) {
+                const menus = JSON.parse(savedMenus);
+                // 기본 2개 메뉴 이후의 커스텀 메뉴만 복원
+                if (menus.length > 2) {
+                    for (let i = 2; i < menus.length; i++) {
+                        const menu = menus[i];
+                        const newMenu = document.createElement('a');
+                        newMenu.href = menu.url;
+                        newMenu.className = 'menu-item';
+                        newMenu.target = '_blank';
+                        newMenu.innerHTML = `
+                            <div class="menu-icon">${menu.icon}</div>
+                            <div class="menu-content">
+                                <div class="menu-title">${menu.title}</div>
+                                <div class="menu-desc">${menu.desc}</div>
+                            </div>
+                            <div class="menu-arrow">→</div>
+                        `;
+                        document.getElementById('menuContainer').appendChild(newMenu);
+                    }
+                }
+            }
+        });
+
+        // 클릭 외부 영역 클릭 시 설정 패널 닫기
+        document.addEventListener('click', function(e) {
+            const settingsBtn = document.getElementById('settingsBtn');
+            const settingsPanel = document.getElementById('settingsPanel');
+            const passwordModal = document.getElementById('passwordModal');
+            
+            if (!settingsBtn.contains(e.target) && 
+                !settingsPanel.contains(e.target) && 
+                !passwordModal.contains(e.target)) {
+                settingsPanel.classList.remove('active');
+            }
+        });
+    </script>
+</body>
+</html>
