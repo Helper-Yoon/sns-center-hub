@@ -588,7 +588,7 @@
                 </div>
                 <div class="settings-item">
                     <div class="settings-label">서버 주소</div>
-                    <input type="text" class="settings-input" id="serverUrl" placeholder="https://sns-center-hub.onrender.com">
+                    <input type="text" class="settings-input" id="serverUrl" placeholder="https://sns-hub-server.onrender.com">
                 </div>
                 <button class="settings-save" onclick="saveServerConfig()">서버 설정 저장</button>
             </div>
@@ -627,7 +627,7 @@
         let editMode = false;
         let currentEditIndex = null;
         // 서버 URL - Render에 배포한 주소로 변경하세요!
-        let SERVER_URL = localStorage.getItem('serverUrl') || 'https://sns-hub-server.onrender.com';
+        let SERVER_URL = localStorage.getItem('serverUrl') || 'https://sns-center-hub.onrender.com';
         let serverOnline = false;
 
         // 서버 URL 입력 필드 초기화
