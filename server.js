@@ -167,4 +167,17 @@ app.listen(PORT, async () => {
     await initDataFile();
     console.log(`서버가 포트 ${PORT}에서 실행 중입니다.`);
     console.log(`http://localhost:${PORT}`);
+
+    // 14분마다 자기 자신을 호출해서 깨어있기
+if (process.env.RENDER) {
+    setInterval(async () => {
+        try {
+            const https = require('https');
+            https.get('https://sns-hub-server.onrender.com');
+            console.log('서버 활성 상태 유지');
+        } catch (error) {
+            console.error('자체 호출 실패:', error);
+        }
+    }, 14 * 60 * 1000); // 14분
+}
 });
