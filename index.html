@@ -34,6 +34,26 @@
             color: #4A9EFF;
         }
 
+        .edit-mode-indicator {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 10px;
+            background: #1E6FFF;
+            color: white;
+            border-radius: 8px;
+            display: none;
+            animation: pulse 2s infinite;
+        }
+
+        .edit-mode-indicator.active {
+            display: block;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+
         .menu-container {
             background: #1a1a1a;
             border-radius: 12px;
@@ -49,6 +69,7 @@
             text-decoration: none;
             transition: all 0.2s;
             cursor: pointer;
+            position: relative;
         }
 
         .menu-item:last-child {
@@ -58,6 +79,10 @@
         .menu-item:hover {
             background: #252525;
             padding-left: 28px;
+        }
+
+        .menu-item.edit-mode:hover {
+            padding-left: 24px;
         }
 
         .menu-icon {
@@ -92,6 +117,51 @@
         .menu-arrow {
             color: #4A9EFF;
             font-size: 20px;
+        }
+
+        .menu-actions {
+            display: none;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .menu-item.edit-mode .menu-actions {
+            display: flex;
+        }
+
+        .menu-item.edit-mode .menu-arrow {
+            display: none;
+        }
+
+        .action-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 16px;
+        }
+
+        .edit-btn {
+            background: #2a5298;
+            color: white;
+        }
+
+        .edit-btn:hover {
+            background: #3a62a8;
+        }
+
+        .delete-btn {
+            background: #8b2635;
+            color: white;
+        }
+
+        .delete-btn:hover {
+            background: #9b3645;
         }
 
         .settings-btn {
@@ -218,7 +288,7 @@
             border-radius: 12px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.5);
             padding: 20px;
-            width: 250px;
+            width: 280px;
             display: none;
             z-index: 1000;
         }
@@ -237,6 +307,38 @@
                 opacity: 1;
                 transform: translateY(0);
             }
+        }
+
+        .settings-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 8px;
+            background: #0a0a0a;
+            border: 1px solid #2a2a2a;
+            border-radius: 6px;
+            color: #8a8a8a;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            background: #1E6FFF;
+            color: white;
+            border-color: #1E6FFF;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
         }
 
         .settings-title {
@@ -273,7 +375,7 @@
 
         .settings-save {
             width: 100%;
-            padding: 8px;
+            padding: 10px;
             background: #1E6FFF;
             color: white;
             border: none;
@@ -287,6 +389,49 @@
             background: #1859d6;
         }
 
+        .settings-close {
+            width: 100%;
+            padding: 10px;
+            background: #2a2a2a;
+            color: #8a8a8a;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+
+        .settings-close:hover {
+            background: #333333;
+            color: white;
+        }
+
+        /* 편집 모달 */
+        .edit-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 3000;
+        }
+
+        .edit-modal.active {
+            display: flex;
+        }
+
+        .edit-box {
+            background: #1a1a1a;
+            border-radius: 12px;
+            padding: 30px;
+            width: 350px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+
         @media (max-width: 480px) {
             .menu-item {
                 padding: 16px 20px;
@@ -298,30 +443,44 @@
                 bottom: 20px;
                 right: 20px;
             }
+
+            .settings-panel {
+                width: calc(100% - 40px);
+                right: 20px;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="logo">SNS센터 업무 허브</div>
+        <div class="edit-mode-indicator" id="editModeIndicator">📝 편집 모드</div>
         
         <div class="menu-container" id="menuContainer">
-            <a href="https://channeltalk-server.onrender.com/" class="menu-item" target="_blank">
+            <a href="https://channeltalk-server.onrender.com/" class="menu-item" target="_blank" data-index="0">
                 <div class="menu-icon">💬</div>
                 <div class="menu-content">
                     <div class="menu-title">채널톡 미답변 상담 모니터 프로그램</div>
                     <div class="menu-desc">미답변 상담 모니터링</div>
                 </div>
                 <div class="menu-arrow">→</div>
+                <div class="menu-actions">
+                    <button class="action-btn edit-btn" onclick="editMenu(0)">✏️</button>
+                    <button class="action-btn delete-btn" onclick="deleteMenu(0)">🗑️</button>
+                </div>
             </a>
 
-            <a href="https://ajdsns.vercel.app/" class="menu-item" target="_blank">
+            <a href="https://ajdsns.vercel.app/" class="menu-item" target="_blank" data-index="1">
                 <div class="menu-icon">📊</div>
                 <div class="menu-content">
                     <div class="menu-title">SNS센터 실적보고</div>
                     <div class="menu-desc">실적 입력 및 관리</div>
                 </div>
                 <div class="menu-arrow">→</div>
+                <div class="menu-actions">
+                    <button class="action-btn edit-btn" onclick="editMenu(1)">✏️</button>
+                    <button class="action-btn delete-btn" onclick="deleteMenu(1)">🗑️</button>
+                </div>
             </a>
         </div>
     </div>
@@ -341,29 +500,75 @@
         </div>
     </div>
 
+    <!-- 설정 패널 -->
     <div class="settings-panel" id="settingsPanel">
-        <div class="settings-title">메뉴 추가</div>
-        <div class="settings-item">
-            <div class="settings-label">메뉴 이름</div>
-            <input type="text" class="settings-input" id="menuName" placeholder="예: 보고서 작성">
+        <div class="settings-tabs">
+            <button class="tab-btn active" onclick="switchTab('add')">메뉴 추가</button>
+            <button class="tab-btn" onclick="switchTab('edit')">메뉴 편집</button>
         </div>
-        <div class="settings-item">
-            <div class="settings-label">설명</div>
-            <input type="text" class="settings-input" id="menuDesc" placeholder="예: 월간 보고서">
+
+        <!-- 메뉴 추가 탭 -->
+        <div class="tab-content active" id="addTab">
+            <div class="settings-title">새 메뉴 추가</div>
+            <div class="settings-item">
+                <div class="settings-label">메뉴 이름</div>
+                <input type="text" class="settings-input" id="menuName" placeholder="예: 보고서 작성">
+            </div>
+            <div class="settings-item">
+                <div class="settings-label">설명</div>
+                <input type="text" class="settings-input" id="menuDesc" placeholder="예: 월간 보고서">
+            </div>
+            <div class="settings-item">
+                <div class="settings-label">URL</div>
+                <input type="text" class="settings-input" id="menuUrl" placeholder="https://...">
+            </div>
+            <div class="settings-item">
+                <div class="settings-label">아이콘 (이모지)</div>
+                <input type="text" class="settings-input" id="menuIcon" placeholder="📝" maxlength="2">
+            </div>
+            <button class="settings-save" onclick="addMenu()">메뉴 추가</button>
         </div>
-        <div class="settings-item">
-            <div class="settings-label">URL</div>
-            <input type="text" class="settings-input" id="menuUrl" placeholder="https://...">
+
+        <!-- 메뉴 편집 탭 -->
+        <div class="tab-content" id="editTab">
+            <div class="settings-title">메뉴 편집 모드</div>
+            <p style="color: #8a8a8a; font-size: 12px; margin-bottom: 15px;">
+                각 메뉴의 편집(✏️) 또는 삭제(🗑️) 버튼을 클릭하세요.
+            </p>
+            <button class="settings-save" onclick="toggleEditMode()">편집 모드 시작</button>
+            <button class="settings-close" onclick="closeSettings()">설정 닫기</button>
         </div>
-        <div class="settings-item">
-            <div class="settings-label">아이콘 (이모지)</div>
-            <input type="text" class="settings-input" id="menuIcon" placeholder="📝" maxlength="2">
+    </div>
+
+    <!-- 편집 모달 -->
+    <div class="edit-modal" id="editModal">
+        <div class="edit-box">
+            <div class="settings-title">메뉴 편집</div>
+            <div class="settings-item">
+                <div class="settings-label">메뉴 이름</div>
+                <input type="text" class="settings-input" id="editMenuName">
+            </div>
+            <div class="settings-item">
+                <div class="settings-label">설명</div>
+                <input type="text" class="settings-input" id="editMenuDesc">
+            </div>
+            <div class="settings-item">
+                <div class="settings-label">URL</div>
+                <input type="text" class="settings-input" id="editMenuUrl">
+            </div>
+            <div class="settings-item">
+                <div class="settings-label">아이콘 (이모지)</div>
+                <input type="text" class="settings-input" id="editMenuIcon" maxlength="2">
+            </div>
+            <button class="settings-save" onclick="saveEditMenu()">저장</button>
+            <button class="settings-close" onclick="closeEditModal()">취소</button>
         </div>
-        <button class="settings-save" onclick="addMenu()">메뉴 추가</button>
     </div>
 
     <script>
         const PASSWORD = '3504';
+        let editMode = false;
+        let currentEditIndex = null;
 
         // 설정 버튼 클릭 시 비밀번호 모달
         document.getElementById('settingsBtn').addEventListener('click', function() {
@@ -402,6 +607,102 @@
             }
         });
 
+        // 탭 전환
+        function switchTab(tab) {
+            // 탭 버튼 활성화
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // 탭 컨텐츠 전환
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            if (tab === 'add') {
+                document.getElementById('addTab').classList.add('active');
+            } else {
+                document.getElementById('editTab').classList.add('active');
+            }
+        }
+
+        // 편집 모드 토글
+        function toggleEditMode() {
+            editMode = !editMode;
+            const indicator = document.getElementById('editModeIndicator');
+            const menuItems = document.querySelectorAll('.menu-item');
+            const editBtn = event.target;
+
+            if (editMode) {
+                indicator.classList.add('active');
+                menuItems.forEach(item => {
+                    item.classList.add('edit-mode');
+                    item.onclick = (e) => {
+                        if (editMode) {
+                            e.preventDefault();
+                        }
+                    };
+                });
+                editBtn.textContent = '편집 모드 종료';
+                editBtn.style.background = '#8b2635';
+            } else {
+                indicator.classList.remove('active');
+                menuItems.forEach(item => {
+                    item.classList.remove('edit-mode');
+                    item.onclick = null;
+                });
+                editBtn.textContent = '편집 모드 시작';
+                editBtn.style.background = '#1E6FFF';
+            }
+        }
+
+        // 메뉴 편집
+        function editMenu(index) {
+            const menuItem = document.querySelector(`.menu-item[data-index="${index}"]`);
+            currentEditIndex = index;
+
+            document.getElementById('editMenuName').value = menuItem.querySelector('.menu-title').textContent;
+            document.getElementById('editMenuDesc').value = menuItem.querySelector('.menu-desc').textContent;
+            document.getElementById('editMenuUrl').value = menuItem.href;
+            document.getElementById('editMenuIcon').value = menuItem.querySelector('.menu-icon').textContent;
+
+            document.getElementById('editModal').classList.add('active');
+        }
+
+        // 편집 내용 저장
+        function saveEditMenu() {
+            const menuItem = document.querySelector(`.menu-item[data-index="${currentEditIndex}"]`);
+            
+            menuItem.querySelector('.menu-title').textContent = document.getElementById('editMenuName').value;
+            menuItem.querySelector('.menu-desc').textContent = document.getElementById('editMenuDesc').value;
+            menuItem.href = document.getElementById('editMenuUrl').value;
+            menuItem.querySelector('.menu-icon').textContent = document.getElementById('editMenuIcon').value;
+
+            closeEditModal();
+            saveMenus();
+        }
+
+        // 편집 모달 닫기
+        function closeEditModal() {
+            document.getElementById('editModal').classList.remove('active');
+            currentEditIndex = null;
+        }
+
+        // 메뉴 삭제
+        function deleteMenu(index) {
+            if (confirm('정말로 이 메뉴를 삭제하시겠습니까?')) {
+                const menuItem = document.querySelector(`.menu-item[data-index="${index}"]`);
+                menuItem.remove();
+                
+                // 인덱스 재정렬
+                document.querySelectorAll('.menu-item').forEach((item, idx) => {
+                    item.setAttribute('data-index', idx);
+                    const editBtn = item.querySelector('.edit-btn');
+                    const deleteBtn = item.querySelector('.delete-btn');
+                    if (editBtn) editBtn.setAttribute('onclick', `editMenu(${idx})`);
+                    if (deleteBtn) deleteBtn.setAttribute('onclick', `deleteMenu(${idx})`);
+                });
+                
+                saveMenus();
+            }
+        }
+
         // 메뉴 추가 기능
         function addMenu() {
             const name = document.getElementById('menuName').value;
@@ -414,11 +715,14 @@
                 return;
             }
 
+            const menuCount = document.querySelectorAll('.menu-item').length;
+
             // 새 메뉴 생성
             const newMenu = document.createElement('a');
             newMenu.href = url;
             newMenu.className = 'menu-item';
             newMenu.target = '_blank';
+            newMenu.setAttribute('data-index', menuCount);
             newMenu.innerHTML = `
                 <div class="menu-icon">${icon}</div>
                 <div class="menu-content">
@@ -426,7 +730,17 @@
                     <div class="menu-desc">${desc || ''}</div>
                 </div>
                 <div class="menu-arrow">→</div>
+                <div class="menu-actions">
+                    <button class="action-btn edit-btn" onclick="editMenu(${menuCount})">✏️</button>
+                    <button class="action-btn delete-btn" onclick="deleteMenu(${menuCount})">🗑️</button>
+                </div>
             `;
+
+            // 편집 모드인 경우 클래스 추가
+            if (editMode) {
+                newMenu.classList.add('edit-mode');
+                newMenu.onclick = (e) => e.preventDefault();
+            }
 
             // 메뉴 컨테이너에 추가
             document.getElementById('menuContainer').appendChild(newMenu);
@@ -437,25 +751,28 @@
             document.getElementById('menuUrl').value = '';
             document.getElementById('menuIcon').value = '';
 
-            // 설정 패널 닫기
-            document.getElementById('settingsPanel').classList.remove('active');
-
             // 로컬 스토리지에 저장
             saveMenus();
+        }
+
+        // 설정 패널 닫기
+        function closeSettings() {
+            document.getElementById('settingsPanel').classList.remove('active');
+            if (editMode) {
+                toggleEditMode();
+            }
         }
 
         // 메뉴 저장
         function saveMenus() {
             const menus = [];
             document.querySelectorAll('.menu-item').forEach(item => {
-                if (item.href) {
-                    menus.push({
-                        title: item.querySelector('.menu-title').textContent,
-                        desc: item.querySelector('.menu-desc').textContent,
-                        url: item.href,
-                        icon: item.querySelector('.menu-icon').textContent
-                    });
-                }
+                menus.push({
+                    title: item.querySelector('.menu-title').textContent,
+                    desc: item.querySelector('.menu-desc').textContent,
+                    url: item.href,
+                    icon: item.querySelector('.menu-icon').textContent
+                });
             });
             localStorage.setItem('customMenus', JSON.stringify(menus));
         }
@@ -465,25 +782,31 @@
             const savedMenus = localStorage.getItem('customMenus');
             if (savedMenus) {
                 const menus = JSON.parse(savedMenus);
-                // 기본 2개 메뉴 이후의 커스텀 메뉴만 복원
-                if (menus.length > 2) {
-                    for (let i = 2; i < menus.length; i++) {
-                        const menu = menus[i];
-                        const newMenu = document.createElement('a');
-                        newMenu.href = menu.url;
-                        newMenu.className = 'menu-item';
-                        newMenu.target = '_blank';
-                        newMenu.innerHTML = `
-                            <div class="menu-icon">${menu.icon}</div>
-                            <div class="menu-content">
-                                <div class="menu-title">${menu.title}</div>
-                                <div class="menu-desc">${menu.desc}</div>
-                            </div>
-                            <div class="menu-arrow">→</div>
-                        `;
-                        document.getElementById('menuContainer').appendChild(newMenu);
-                    }
-                }
+                
+                // 기존 메뉴 모두 제거
+                document.getElementById('menuContainer').innerHTML = '';
+                
+                // 저장된 메뉴 복원
+                menus.forEach((menu, index) => {
+                    const newMenu = document.createElement('a');
+                    newMenu.href = menu.url;
+                    newMenu.className = 'menu-item';
+                    newMenu.target = '_blank';
+                    newMenu.setAttribute('data-index', index);
+                    newMenu.innerHTML = `
+                        <div class="menu-icon">${menu.icon}</div>
+                        <div class="menu-content">
+                            <div class="menu-title">${menu.title}</div>
+                            <div class="menu-desc">${menu.desc}</div>
+                        </div>
+                        <div class="menu-arrow">→</div>
+                        <div class="menu-actions">
+                            <button class="action-btn edit-btn" onclick="editMenu(${index})">✏️</button>
+                            <button class="action-btn delete-btn" onclick="deleteMenu(${index})">🗑️</button>
+                        </div>
+                    `;
+                    document.getElementById('menuContainer').appendChild(newMenu);
+                });
             }
         });
 
@@ -492,10 +815,12 @@
             const settingsBtn = document.getElementById('settingsBtn');
             const settingsPanel = document.getElementById('settingsPanel');
             const passwordModal = document.getElementById('passwordModal');
+            const editModal = document.getElementById('editModal');
             
             if (!settingsBtn.contains(e.target) && 
                 !settingsPanel.contains(e.target) && 
-                !passwordModal.contains(e.target)) {
+                !passwordModal.contains(e.target) &&
+                !editModal.contains(e.target)) {
                 settingsPanel.classList.remove('active');
             }
         });
