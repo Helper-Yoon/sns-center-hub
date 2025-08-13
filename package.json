@@ -4,7 +4,8 @@
   "description": "SNS센터 업무 허브 백엔드 서버",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "build": "echo 'No build required'"
   },
   "dependencies": {
     "express": "^4.18.2",
