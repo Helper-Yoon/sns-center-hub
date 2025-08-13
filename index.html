@@ -109,6 +109,14 @@
             position: relative;
         }
 
+        .menu-item.dragging {
+            opacity: 0.5;
+        }
+
+        .menu-item.drag-over {
+            background: #2a5298;
+        }
+
         .menu-item:last-child {
             border-bottom: none;
         }
@@ -158,7 +166,7 @@
 
         .menu-actions {
             display: none;
-            gap: 8px;
+            gap: 6px;
             align-items: center;
         }
 
@@ -171,8 +179,8 @@
         }
 
         .action-btn {
-            width: 32px;
-            height: 32px;
+            width: 30px;
+            height: 30px;
             border-radius: 6px;
             border: none;
             display: flex;
@@ -180,7 +188,21 @@
             justify-content: center;
             cursor: pointer;
             transition: all 0.2s;
-            font-size: 16px;
+            font-size: 14px;
+        }
+
+        .move-btn {
+            background: #2a2a2a;
+            color: white;
+        }
+
+        .move-btn:hover:not(:disabled) {
+            background: #3a3a3a;
+        }
+
+        .move-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
         }
 
         .edit-btn {
@@ -503,6 +525,16 @@
                 padding: 16px 20px;
             }
             
+            .menu-item.edit-mode {
+                padding: 16px 12px;
+            }
+            
+            .action-btn {
+                width: 28px;
+                height: 28px;
+                font-size: 12px;
+            }
+            
             .settings-btn {
                 width: 45px;
                 height: 45px;
@@ -520,7 +552,7 @@
 <body>
     <div class="container">
         <div class="logo">SNS센터 업무 허브</div>
-        <div class="edit-mode-indicator" id="editModeIndicator">📝 편집 모드</div>
+        <div class="edit-mode-indicator" id="editModeIndicator">📝 편집 모드 (드래그로 순서 변경 가능)</div>
         
         <div class="menu-container" id="menuContainer">
             <div class="loading">메뉴를 불러오는 중...</div>
@@ -577,7 +609,8 @@
         <div class="tab-content" id="editTab">
             <div class="settings-title">메뉴 편집 모드</div>
             <p style="color: #8a8a8a; font-size: 12px; margin-bottom: 15px;">
-                각 메뉴의 편집(✏️) 또는 삭제(🗑️) 버튼을 클릭하세요.
+                드래그 앤 드롭 또는 화살표 버튼으로 순서 변경<br>
+                편집(✏️) 또는 삭제(🗑️) 버튼 클릭
             </p>
             <button class="settings-save" onclick="toggleEditMode()">편집 모드 시작</button>
             
@@ -626,7 +659,7 @@
         const PASSWORD = '3504';
         let editMode = false;
         let currentEditIndex = null;
-        // 서버 URL - Render에 배포한 주소로 변경하세요!
+        let draggedElement = null;
         let SERVER_URL = localStorage.getItem('serverUrl') || 'https://sns-center-hub.onrender.com';
         let serverOnline = false;
 
@@ -676,31 +709,28 @@
                 return;
             }
             
-            // URL 끝에 슬래시 제거
             SERVER_URL = newUrl.replace(/\/$/, '');
             localStorage.setItem('serverUrl', SERVER_URL);
             
             const isOnline = await checkServerStatus();
             if (isOnline) {
                 showSyncIndicator('서버 설정 저장됨');
-                loadMenus(); // 서버에서 메뉴 다시 로드
+                loadMenus();
             } else {
                 showSyncIndicator('서버 연결 실패', true);
             }
         }
 
-        // 메뉴 로드 (서버 우선, 실패 시 로컬)
+        // 메뉴 로드
         async function loadMenus() {
             const container = document.getElementById('menuContainer');
             
             try {
-                // 먼저 서버에서 로드 시도
                 if (serverOnline || await checkServerStatus()) {
                     const response = await fetch(`${SERVER_URL}/api/menus`);
                     if (response.ok) {
                         const menus = await response.json();
                         renderMenus(menus);
-                        // 서버 데이터를 로컬에도 백업
                         localStorage.setItem('customMenus', JSON.stringify(menus));
                         return;
                     }
@@ -709,13 +739,11 @@
                 console.error('서버 로드 실패:', error);
             }
             
-            // 서버 실패 시 로컬 스토리지에서 로드
             const savedMenus = localStorage.getItem('customMenus');
             if (savedMenus) {
                 const menus = JSON.parse(savedMenus);
                 renderMenus(menus);
             } else {
-                // 기본 메뉴
                 const defaultMenus = [
                     {
                         title: "채널톡 미답변 상담 모니터 프로그램",
@@ -745,6 +773,11 @@
                 newMenu.className = 'menu-item';
                 newMenu.target = '_blank';
                 newMenu.setAttribute('data-index', index);
+                newMenu.draggable = editMode;
+                
+                const isFirst = index === 0;
+                const isLast = index === menus.length - 1;
+                
                 newMenu.innerHTML = `
                     <div class="menu-icon">${menu.icon}</div>
                     <div class="menu-content">
@@ -753,6 +786,8 @@
                     </div>
                     <div class="menu-arrow">→</div>
                     <div class="menu-actions">
+                        <button class="action-btn move-btn" onclick="moveUp(${index})" ${isFirst ? 'disabled' : ''}>⬆️</button>
+                        <button class="action-btn move-btn" onclick="moveDown(${index})" ${isLast ? 'disabled' : ''}>⬇️</button>
                         <button class="action-btn edit-btn" onclick="editMenu(${index})">✏️</button>
                         <button class="action-btn delete-btn" onclick="deleteMenu(${index})">🗑️</button>
                     </div>
@@ -761,13 +796,137 @@
                 if (editMode) {
                     newMenu.classList.add('edit-mode');
                     newMenu.onclick = (e) => e.preventDefault();
+                    setupDragAndDrop(newMenu);
                 }
                 
                 container.appendChild(newMenu);
             });
         }
 
-        // 메뉴 저장 (서버 & 로컬)
+        // 드래그 앤 드롭 설정
+        function setupDragAndDrop(element) {
+            element.addEventListener('dragstart', handleDragStart);
+            element.addEventListener('dragenter', handleDragEnter);
+            element.addEventListener('dragover', handleDragOver);
+            element.addEventListener('dragleave', handleDragLeave);
+            element.addEventListener('drop', handleDrop);
+            element.addEventListener('dragend', handleDragEnd);
+        }
+
+        function handleDragStart(e) {
+            draggedElement = this;
+            this.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/html', this.innerHTML);
+        }
+
+        function handleDragEnter(e) {
+            if (this !== draggedElement) {
+                this.classList.add('drag-over');
+            }
+        }
+
+        function handleDragOver(e) {
+            if (e.preventDefault) {
+                e.preventDefault();
+            }
+            e.dataTransfer.dropEffect = 'move';
+            return false;
+        }
+
+        function handleDragLeave(e) {
+            this.classList.remove('drag-over');
+        }
+
+        function handleDrop(e) {
+            if (e.stopPropagation) {
+                e.stopPropagation();
+            }
+            
+            if (draggedElement !== this) {
+                const container = document.getElementById('menuContainer');
+                const allItems = [...container.querySelectorAll('.menu-item')];
+                const draggedIndex = allItems.indexOf(draggedElement);
+                const targetIndex = allItems.indexOf(this);
+                
+                if (draggedIndex < targetIndex) {
+                    container.insertBefore(draggedElement, this.nextSibling);
+                } else {
+                    container.insertBefore(draggedElement, this);
+                }
+                
+                updateIndicesAndSave();
+            }
+            
+            return false;
+        }
+
+        function handleDragEnd(e) {
+            const items = document.querySelectorAll('.menu-item');
+            items.forEach(item => {
+                item.classList.remove('drag-over');
+                item.classList.remove('dragging');
+            });
+        }
+
+        // 위로 이동
+        function moveUp(index) {
+            if (index === 0) return;
+            
+            const container = document.getElementById('menuContainer');
+            const items = container.querySelectorAll('.menu-item');
+            const currentItem = items[index];
+            const previousItem = items[index - 1];
+            
+            container.insertBefore(currentItem, previousItem);
+            updateIndicesAndSave();
+            showSyncIndicator('순서 변경됨');
+        }
+
+        // 아래로 이동
+        function moveDown(index) {
+            const container = document.getElementById('menuContainer');
+            const items = container.querySelectorAll('.menu-item');
+            
+            if (index >= items.length - 1) return;
+            
+            const currentItem = items[index];
+            const nextItem = items[index + 1];
+            
+            container.insertBefore(nextItem, currentItem);
+            updateIndicesAndSave();
+            showSyncIndicator('순서 변경됨');
+        }
+
+        // 인덱스 업데이트 및 저장
+        function updateIndicesAndSave() {
+            const items = document.querySelectorAll('.menu-item');
+            const totalItems = items.length;
+            
+            items.forEach((item, idx) => {
+                item.setAttribute('data-index', idx);
+                
+                const moveUpBtn = item.querySelector('.move-btn:nth-of-type(1)');
+                const moveDownBtn = item.querySelector('.move-btn:nth-of-type(2)');
+                const editBtn = item.querySelector('.edit-btn');
+                const deleteBtn = item.querySelector('.delete-btn');
+                
+                if (moveUpBtn) {
+                    moveUpBtn.setAttribute('onclick', `moveUp(${idx})`);
+                    moveUpBtn.disabled = idx === 0;
+                }
+                if (moveDownBtn) {
+                    moveDownBtn.setAttribute('onclick', `moveDown(${idx})`);
+                    moveDownBtn.disabled = idx === totalItems - 1;
+                }
+                if (editBtn) editBtn.setAttribute('onclick', `editMenu(${idx})`);
+                if (deleteBtn) deleteBtn.setAttribute('onclick', `deleteMenu(${idx})`);
+            });
+            
+            saveMenus();
+        }
+
+        // 메뉴 저장
         async function saveMenus() {
             const menus = [];
             document.querySelectorAll('.menu-item').forEach(item => {
@@ -779,10 +938,8 @@
                 });
             });
             
-            // 로컬 스토리지에 저장
             localStorage.setItem('customMenus', JSON.stringify(menus));
             
-            // 서버에 저장 시도
             if (serverOnline) {
                 try {
                     const response = await fetch(`${SERVER_URL}/api/menus`, {
@@ -819,7 +976,6 @@
 
             const newMenu = { title: name, desc: desc || '', url, icon };
             
-            // 서버에 추가 시도
             if (serverOnline) {
                 try {
                     const response = await fetch(`${SERVER_URL}/api/menus/add`, {
@@ -836,13 +992,16 @@
                 }
             }
             
-            // UI 업데이트
             const menuCount = document.querySelectorAll('.menu-item').length;
             const menuElement = document.createElement('a');
             menuElement.href = url;
             menuElement.className = 'menu-item';
             menuElement.target = '_blank';
             menuElement.setAttribute('data-index', menuCount);
+            menuElement.draggable = editMode;
+            
+            const isFirst = menuCount === 0;
+            
             menuElement.innerHTML = `
                 <div class="menu-icon">${icon}</div>
                 <div class="menu-content">
@@ -851,6 +1010,8 @@
                 </div>
                 <div class="menu-arrow">→</div>
                 <div class="menu-actions">
+                    <button class="action-btn move-btn" onclick="moveUp(${menuCount})" ${isFirst ? 'disabled' : ''}>⬆️</button>
+                    <button class="action-btn move-btn" onclick="moveDown(${menuCount})" disabled>⬇️</button>
                     <button class="action-btn edit-btn" onclick="editMenu(${menuCount})">✏️</button>
                     <button class="action-btn delete-btn" onclick="deleteMenu(${menuCount})">🗑️</button>
                 </div>
@@ -859,17 +1020,26 @@
             if (editMode) {
                 menuElement.classList.add('edit-mode');
                 menuElement.onclick = (e) => e.preventDefault();
+                setupDragAndDrop(menuElement);
+            }
+
+            // 이전 마지막 아이템의 아래 버튼 활성화
+            const previousItems = document.querySelectorAll('.menu-item');
+            if (previousItems.length > 0) {
+                const lastItem = previousItems[previousItems.length - 1];
+                const lastDownBtn = lastItem.querySelector('.move-btn:nth-of-type(2)');
+                if (lastDownBtn) {
+                    lastDownBtn.disabled = false;
+                }
             }
 
             document.getElementById('menuContainer').appendChild(menuElement);
 
-            // 입력 필드 초기화
             document.getElementById('menuName').value = '';
             document.getElementById('menuDesc').value = '';
             document.getElementById('menuUrl').value = '';
             document.getElementById('menuIcon').value = '';
 
-            // 저장
             saveMenus();
         }
 
@@ -896,7 +1066,6 @@
                 icon: document.getElementById('editMenuIcon').value
             };
             
-            // 서버 업데이트
             if (serverOnline) {
                 try {
                     const response = await fetch(`${SERVER_URL}/api/menus/${currentEditIndex}`, {
@@ -913,7 +1082,6 @@
                 }
             }
             
-            // UI 업데이트
             menuItem.querySelector('.menu-title').textContent = updatedMenu.title;
             menuItem.querySelector('.menu-desc').textContent = updatedMenu.desc;
             menuItem.href = updatedMenu.url;
@@ -932,7 +1100,6 @@
         // 메뉴 삭제
         async function deleteMenu(index) {
             if (confirm('정말로 이 메뉴를 삭제하시겠습니까?')) {
-                // 서버에서 삭제
                 if (serverOnline) {
                     try {
                         const response = await fetch(`${SERVER_URL}/api/menus/${index}`, {
@@ -947,24 +1114,14 @@
                     }
                 }
                 
-                // UI에서 삭제
                 const menuItem = document.querySelector(`.menu-item[data-index="${index}"]`);
                 menuItem.remove();
                 
-                // 인덱스 재정렬
-                document.querySelectorAll('.menu-item').forEach((item, idx) => {
-                    item.setAttribute('data-index', idx);
-                    const editBtn = item.querySelector('.edit-btn');
-                    const deleteBtn = item.querySelector('.delete-btn');
-                    if (editBtn) editBtn.setAttribute('onclick', `editMenu(${idx})`);
-                    if (deleteBtn) deleteBtn.setAttribute('onclick', `deleteMenu(${idx})`);
-                });
-                
-                saveMenus();
+                updateIndicesAndSave();
             }
         }
 
-        // 나머지 기능들 (비밀번호, 설정 패널 등)
+        // 나머지 기능들
         document.getElementById('settingsBtn').addEventListener('click', function() {
             document.getElementById('passwordModal').classList.add('active');
             document.getElementById('passwordInput').focus();
@@ -977,7 +1134,7 @@
             if (input === PASSWORD) {
                 closePasswordModal();
                 document.getElementById('settingsPanel').classList.add('active');
-                checkServerStatus(); // 설정 패널 열 때 서버 상태 확인
+                checkServerStatus();
             } else {
                 errorMsg.style.display = 'block';
                 document.getElementById('passwordInput').value = '';
@@ -1021,11 +1178,13 @@
                 indicator.classList.add('active');
                 menuItems.forEach(item => {
                     item.classList.add('edit-mode');
+                    item.draggable = true;
                     item.onclick = (e) => {
                         if (editMode) {
                             e.preventDefault();
                         }
                     };
+                    setupDragAndDrop(item);
                 });
                 editBtn.textContent = '편집 모드 종료';
                 editBtn.style.background = '#8b2635';
@@ -1033,7 +1192,15 @@
                 indicator.classList.remove('active');
                 menuItems.forEach(item => {
                     item.classList.remove('edit-mode');
+                    item.draggable = false;
                     item.onclick = null;
+                    // 드래그 이벤트 리스너 제거
+                    item.removeEventListener('dragstart', handleDragStart);
+                    item.removeEventListener('dragenter', handleDragEnter);
+                    item.removeEventListener('dragover', handleDragOver);
+                    item.removeEventListener('dragleave', handleDragLeave);
+                    item.removeEventListener('drop', handleDrop);
+                    item.removeEventListener('dragend', handleDragEnd);
                 });
                 editBtn.textContent = '편집 모드 시작';
                 editBtn.style.background = '#1E6FFF';
