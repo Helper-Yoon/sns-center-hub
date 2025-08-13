@@ -798,16 +798,11 @@ const HTML_PAGE = `<!DOCTYPE html>
         // 관리자 모드 UI 업데이트
         function updateAdminUI() {
             const indicator = document.getElementById('adminIndicator');
-            const adminBtn = document.getElementById('adminLoginBtn');
             
             if (isAdminMode) {
                 indicator.classList.add('active');
-                adminBtn.textContent = '👑 관리자 로그아웃';
-                adminBtn.classList.add('logout');
             } else {
                 indicator.classList.remove('active');
-                adminBtn.textContent = '👑 관리자 로그인';
-                adminBtn.classList.remove('logout');
             }
             
             loadMenus();
@@ -846,9 +841,13 @@ const HTML_PAGE = `<!DOCTYPE html>
             const container = document.getElementById('menuContainer');
             
             try {
+                console.log('메뉴 로드 시작...');
                 const response = await fetch('/api/menus');
+                console.log('API 응답:', response);
+                
                 if (response.ok) {
                     let menus = await response.json();
+                    console.log('서버에서 받은 메뉴:', menus);
                     
                     // 관리자 모드가 아니면 일반 메뉴만 필터링
                     if (!isAdminMode) {
@@ -858,14 +857,18 @@ const HTML_PAGE = `<!DOCTYPE html>
                     renderMenus(menus);
                     localStorage.setItem('customMenus', JSON.stringify(menus));
                     return;
+                } else {
+                    console.error('서버 응답 오류:', response.status);
                 }
             } catch (error) {
                 console.error('서버 로드 실패:', error);
             }
             
+            console.log('로컬 스토리지에서 메뉴 로드 시도...');
             const savedMenus = localStorage.getItem('customMenus');
             if (savedMenus) {
                 let menus = JSON.parse(savedMenus);
+                console.log('로컬 스토리지 메뉴:', menus);
                 
                 // 관리자 모드가 아니면 일반 메뉴만 필터링
                 if (!isAdminMode) {
@@ -874,6 +877,7 @@ const HTML_PAGE = `<!DOCTYPE html>
                 
                 renderMenus(menus);
             } else {
+                console.log('기본 메뉴 표시...');
                 const defaultMenus = [
                     {
                         title: "채널톡 미답변 상담 모니터 프로그램",
@@ -926,12 +930,25 @@ const HTML_PAGE = `<!DOCTYPE html>
                 }
                 
                 renderMenus(filteredMenus);
+                localStorage.setItem('customMenus', JSON.stringify(defaultMenus));
             }
         }
 
         // 메뉴 렌더링
         function renderMenus(menus) {
+            console.log('renderMenus 호출됨, 메뉴 개수:', menus ? menus.length : 0);
             const container = document.getElementById('menuContainer');
+            
+            if (!container) {
+                console.error('menuContainer 요소를 찾을 수 없습니다');
+                return;
+            }
+            
+            if (!menus || menus.length === 0) {
+                container.innerHTML = '<div class="loading">표시할 메뉴가 없습니다</div>';
+                return;
+            }
+            
             container.innerHTML = '';
             
             menus.forEach((menu, index) => {
@@ -1457,6 +1474,7 @@ const HTML_PAGE = `<!DOCTYPE html>
             if (isPasswordSaved()) {
                 isAdminMode = true;
             }
+            // updateAdminUI가 loadMenus를 호출하므로 별도로 호출하지 않음
             updateAdminUI();
         });
 
