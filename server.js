@@ -880,13 +880,6 @@ const HTML_PAGE = `<!DOCTYPE html>
                 console.log('기본 메뉴 표시...');
                 const defaultMenus = [
                     {
-                        title: "채널톡 미답변 상담 모니터 프로그램",
-                        desc: "미답변 상담 모니터링",
-                        url: "https://channeltalk-server.onrender.com/",
-                        icon: "💬",
-                        isAdmin: false
-                    },
-                    {
                         title: "SNS센터 실적보고",
                         desc: "실적 입력 및 관리",
                         url: "https://ajdsns.vercel.app/",
@@ -912,13 +905,6 @@ const HTML_PAGE = `<!DOCTYPE html>
                         desc: "채널톡 채팅 심층분석",
                         url: "https://chat-analyzer-ql7u.onrender.com/",
                         icon: "📈",
-                        isAdmin: false
-                    },
-                    {
-                        title: "채널톡 채팅분석 프로그램",
-                        desc: "관리자용 채널톡 채팅 심층분석",
-                        url: "https://chat-analyzer-ql7u.onrender.com",
-                        icon: "🔍",
                         isAdmin: true
                     }
                 ];
@@ -1470,6 +1456,17 @@ const HTML_PAGE = `<!DOCTYPE html>
 
         // 초기화
         window.addEventListener('load', async function() {
+            // 메뉴 버전 확인 및 업데이트
+            const MENU_VERSION = 'v3.1';
+            const savedVersion = localStorage.getItem('menuVersion');
+            
+            if (savedVersion !== MENU_VERSION) {
+                // 버전이 다르면 메뉴 초기화
+                localStorage.removeItem('customMenus');
+                localStorage.setItem('menuVersion', MENU_VERSION);
+                console.log('메뉴 버전 업데이트:', MENU_VERSION);
+            }
+            
             // 저장된 비밀번호가 있으면 관리자 모드 활성화
             if (isPasswordSaved()) {
                 isAdminMode = true;
@@ -1517,13 +1514,6 @@ async function initDataFile() {
             const initialData = {
                 menus: [
                     {
-                        title: "채널톡 미답변 상담 모니터 프로그램",
-                        desc: "미답변 상담 모니터링",
-                        url: "https://channeltalk-server.onrender.com/",
-                        icon: "💬",
-                        isAdmin: false
-                    },
-                    {
                         title: "SNS센터 실적보고",
                         desc: "실적 입력 및 관리",
                         url: "https://ajdsns.vercel.app/",
@@ -1549,13 +1539,6 @@ async function initDataFile() {
                         desc: "채널톡 채팅 심층분석",
                         url: "https://chat-analyzer-ql7u.onrender.com/",
                         icon: "📈",
-                        isAdmin: false
-                    },
-                    {
-                        title: "채널톡 채팅분석 프로그램",
-                        desc: "관리자용 채널톡 채팅 심층분석",
-                        url: "https://chat-analyzer-ql7u.onrender.com",
-                        icon: "🔍",
                         isAdmin: true
                     }
                 ]
@@ -1577,13 +1560,6 @@ app.get('/api/menus', async (req, res) => {
     } catch (error) {
         console.error('메뉴 로드 오류:', error);
         res.json([
-            {
-                title: "채널톡 미답변 상담 모니터 프로그램",
-                desc: "미답변 상담 모니터링",
-                url: "https://channeltalk-server.onrender.com/",
-                icon: "💬",
-                isAdmin: false
-            },
             {
                 title: "SNS센터 실적보고",
                 desc: "실적 입력 및 관리",
@@ -1610,13 +1586,6 @@ app.get('/api/menus', async (req, res) => {
                 desc: "채널톡 채팅 심층분석",
                 url: "https://chat-analyzer-ql7u.onrender.com/",
                 icon: "📈",
-                isAdmin: false
-            },
-            {
-                title: "채널톡 채팅분석 프로그램",
-                desc: "관리자용 채널톡 채팅 심층분석",
-                url: "https://chat-analyzer-ql7u.onrender.com",
-                icon: "🔍",
                 isAdmin: true
             }
         ]);
