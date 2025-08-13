@@ -1,11 +1,10 @@
-// server.js
 const express = require('express');
 const cors = require('cors');
 const fs = require('fs').promises;
 const path = require('path');
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 10000;
 
 // Middleware
 app.use(cors());
@@ -14,13 +13,16 @@ app.use(express.json());
 // 데이터 파일 경로
 const DATA_FILE = path.join(__dirname, 'data', 'menus.json');
 
-// HTML 페이지 (메인 페이지로 제공)
+// HTML 페이지 (최신 버전)
 const HTML_PAGE = `<!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SNS센터 업무 허브</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>SNS센터 업무 허브 v2.0</title>
     <style>
         * {
             margin: 0;
@@ -126,6 +128,16 @@ const HTML_PAGE = `<!DOCTYPE html>
             position: relative;
         }
 
+        .menu-item.dragging {
+            opacity: 0.5;
+            background: #2a5298;
+        }
+
+        .menu-item.drag-over {
+            background: #2a5298;
+            border-top: 2px solid #4A9EFF;
+        }
+
         .menu-item:last-child {
             border-bottom: none;
         }
@@ -133,6 +145,10 @@ const HTML_PAGE = `<!DOCTYPE html>
         .menu-item:hover {
             background: #252525;
             padding-left: 28px;
+        }
+
+        .menu-item.edit-mode {
+            cursor: move;
         }
 
         .menu-item.edit-mode:hover {
@@ -175,7 +191,7 @@ const HTML_PAGE = `<!DOCTYPE html>
 
         .menu-actions {
             display: none;
-            gap: 8px;
+            gap: 6px;
             align-items: center;
         }
 
@@ -188,8 +204,8 @@ const HTML_PAGE = `<!DOCTYPE html>
         }
 
         .action-btn {
-            width: 32px;
-            height: 32px;
+            width: 30px;
+            height: 30px;
             border-radius: 6px;
             border: none;
             display: flex;
@@ -197,7 +213,21 @@ const HTML_PAGE = `<!DOCTYPE html>
             justify-content: center;
             cursor: pointer;
             transition: all 0.2s;
-            font-size: 16px;
+            font-size: 14px;
+        }
+
+        .move-btn {
+            background: #2a2a2a;
+            color: white;
+        }
+
+        .move-btn:hover:not(:disabled) {
+            background: #3a3a3a;
+        }
+
+        .move-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
         }
 
         .edit-btn {
@@ -459,6 +489,51 @@ const HTML_PAGE = `<!DOCTYPE html>
             color: white;
         }
 
+        .logout-btn {
+            width: 100%;
+            padding: 10px;
+            background: #8b2635;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+
+        .logout-btn:hover {
+            background: #9b3645;
+        }
+
+        .server-config {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #2a2a2a;
+        }
+
+        .server-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ff4444;
+        }
+
+        .status-dot.online {
+            background: #44ff44;
+        }
+
+        .status-text {
+            font-size: 11px;
+            color: #8a8a8a;
+        }
+
         .edit-modal {
             position: fixed;
             top: 0;
@@ -489,6 +564,16 @@ const HTML_PAGE = `<!DOCTYPE html>
                 padding: 16px 20px;
             }
             
+            .menu-item.edit-mode {
+                padding: 16px 12px;
+            }
+            
+            .action-btn {
+                width: 28px;
+                height: 28px;
+                font-size: 12px;
+            }
+            
             .settings-btn {
                 width: 45px;
                 height: 45px;
@@ -506,7 +591,7 @@ const HTML_PAGE = `<!DOCTYPE html>
 <body>
     <div class="container">
         <div class="logo">SNS센터 업무 허브</div>
-        <div class="edit-mode-indicator" id="editModeIndicator">📝 편집 모드</div>
+        <div class="edit-mode-indicator" id="editModeIndicator">📝 편집 모드 (드래그로 순서 변경 가능)</div>
         
         <div class="menu-container" id="menuContainer">
             <div class="loading">메뉴를 불러오는 중...</div>
@@ -517,24 +602,27 @@ const HTML_PAGE = `<!DOCTYPE html>
 
     <button class="settings-btn" id="settingsBtn">⚙️</button>
 
+    <!-- 비밀번호 모달 -->
     <div class="password-modal" id="passwordModal">
         <div class="password-box">
             <div class="password-title">비밀번호 입력</div>
             <input type="password" class="password-input" id="passwordInput" placeholder="****" maxlength="4">
             <div class="password-error" id="passwordError">비밀번호가 틀렸습니다</div>
             <div class="password-buttons">
-                <button class="password-btn password-cancel" onclick="closePasswordModal()">취소</button>
-                <button class="password-btn password-confirm" onclick="checkPassword()">확인</button>
+                <button class="password-btn password-cancel" id="passwordCancelBtn">취소</button>
+                <button class="password-btn password-confirm" id="passwordConfirmBtn">확인</button>
             </div>
         </div>
     </div>
 
+    <!-- 설정 패널 -->
     <div class="settings-panel" id="settingsPanel">
         <div class="settings-tabs">
-            <button class="tab-btn active" onclick="switchTab('add')">메뉴 추가</button>
-            <button class="tab-btn" onclick="switchTab('edit')">메뉴 편집</button>
+            <button class="tab-btn active" id="addTabBtn">메뉴 추가</button>
+            <button class="tab-btn" id="editTabBtn">메뉴 편집</button>
         </div>
 
+        <!-- 메뉴 추가 탭 -->
         <div class="tab-content active" id="addTab">
             <div class="settings-title">새 메뉴 추가</div>
             <div class="settings-item">
@@ -553,19 +641,31 @@ const HTML_PAGE = `<!DOCTYPE html>
                 <div class="settings-label">아이콘 (이모지)</div>
                 <input type="text" class="settings-input" id="menuIcon" placeholder="📝" maxlength="2">
             </div>
-            <button class="settings-save" onclick="addMenu()">메뉴 추가</button>
+            <button class="settings-save" id="addMenuBtn">메뉴 추가</button>
         </div>
 
+        <!-- 메뉴 편집 탭 -->
         <div class="tab-content" id="editTab">
             <div class="settings-title">메뉴 편집 모드</div>
             <p style="color: #8a8a8a; font-size: 12px; margin-bottom: 15px;">
-                각 메뉴의 편집(✏️) 또는 삭제(🗑️) 버튼을 클릭하세요.
+                드래그 앤 드롭 또는 화살표 버튼으로 순서 변경<br>
+                편집(✏️) 또는 삭제(🗑️) 버튼 클릭
             </p>
-            <button class="settings-save" onclick="toggleEditMode()">편집 모드 시작</button>
-            <button class="settings-close" onclick="closeSettings()">설정 닫기</button>
+            <button class="settings-save" id="toggleEditBtn">편집 모드 시작</button>
+            
+            <div class="server-config">
+                <div class="server-status">
+                    <div class="status-dot online" id="serverStatus"></div>
+                    <span class="status-text" id="serverStatusText">서버 연결됨</span>
+                </div>
+            </div>
+            
+            <button class="settings-close" id="closeSettingsBtn">설정 닫기</button>
+            <button class="logout-btn" id="logoutBtn">비밀번호 초기화</button>
         </div>
     </div>
 
+    <!-- 편집 모달 -->
     <div class="edit-modal" id="editModal">
         <div class="edit-box">
             <div class="settings-title">메뉴 편집</div>
@@ -585,8 +685,8 @@ const HTML_PAGE = `<!DOCTYPE html>
                 <div class="settings-label">아이콘 (이모지)</div>
                 <input type="text" class="settings-input" id="editMenuIcon" maxlength="2">
             </div>
-            <button class="settings-save" onclick="saveEditMenu()">저장</button>
-            <button class="settings-close" onclick="closeEditModal()">취소</button>
+            <button class="settings-save" id="saveEditBtn">저장</button>
+            <button class="settings-close" id="closeEditBtn">취소</button>
         </div>
     </div>
 
@@ -594,7 +694,25 @@ const HTML_PAGE = `<!DOCTYPE html>
         const PASSWORD = '3504';
         let editMode = false;
         let currentEditIndex = null;
+        let draggedElement = null;
+        let serverOnline = true;
 
+        // 비밀번호 확인 - 로컬스토리지 체크
+        function isPasswordSaved() {
+            const savedTime = localStorage.getItem('passwordTime');
+            if (!savedTime) return false;
+            
+            // 24시간 후 만료
+            const EXPIRE_TIME = 24 * 60 * 60 * 1000;
+            const now = new Date().getTime();
+            if (now - parseInt(savedTime) > EXPIRE_TIME) {
+                localStorage.removeItem('passwordTime');
+                return false;
+            }
+            return true;
+        }
+
+        // 동기화 표시
         function showSyncIndicator(message, isError = false) {
             const indicator = document.getElementById('syncIndicator');
             indicator.textContent = message;
@@ -604,6 +722,7 @@ const HTML_PAGE = `<!DOCTYPE html>
             }, 2000);
         }
 
+        // 메뉴 로드
         async function loadMenus() {
             const container = document.getElementById('menuContainer');
             
@@ -612,13 +731,55 @@ const HTML_PAGE = `<!DOCTYPE html>
                 if (response.ok) {
                     const menus = await response.json();
                     renderMenus(menus);
+                    localStorage.setItem('customMenus', JSON.stringify(menus));
+                    return;
                 }
             } catch (error) {
-                console.error('메뉴 로드 실패:', error);
-                container.innerHTML = '<div class="loading">메뉴를 불러올 수 없습니다.</div>';
+                console.error('서버 로드 실패:', error);
+            }
+            
+            const savedMenus = localStorage.getItem('customMenus');
+            if (savedMenus) {
+                const menus = JSON.parse(savedMenus);
+                renderMenus(menus);
+            } else {
+                const defaultMenus = [
+                    {
+                        title: "채널톡 미답변 상담 모니터 프로그램",
+                        desc: "미답변 상담 모니터링",
+                        url: "https://channeltalk-server.onrender.com/",
+                        icon: "💬"
+                    },
+                    {
+                        title: "SNS센터 실적보고",
+                        desc: "실적 입력 및 관리",
+                        url: "https://ajdsns.vercel.app/",
+                        icon: "📊"
+                    },
+                    {
+                        title: "가망상담건 유치자변경 보고시스템",
+                        desc: "상요 > 가망 유치자공란 건",
+                        url: "https://sangyo-system.vercel.app/",
+                        icon: "🔄"
+                    },
+                    {
+                        title: "취소양식 관리 시스템",
+                        desc: "취소양식 생성 및 관리",
+                        url: "https://cancel-report.vercel.app/",
+                        icon: "📋"
+                    },
+                    {
+                        title: "SNS센터 채팅분석 프로그램",
+                        desc: "채널톡 채팅 심층분석",
+                        url: "https://chat-analyzer-ql7u.onrender.com/",
+                        icon: "📈"
+                    }
+                ];
+                renderMenus(defaultMenus);
             }
         }
 
+        // 메뉴 렌더링
         function renderMenus(menus) {
             const container = document.getElementById('menuContainer');
             container.innerHTML = '';
@@ -629,6 +790,11 @@ const HTML_PAGE = `<!DOCTYPE html>
                 newMenu.className = 'menu-item';
                 newMenu.target = '_blank';
                 newMenu.setAttribute('data-index', index);
+                newMenu.draggable = editMode;
+                
+                const isFirst = index === 0;
+                const isLast = index === menus.length - 1;
+                
                 newMenu.innerHTML = \`
                     <div class="menu-icon">\${menu.icon}</div>
                     <div class="menu-content">
@@ -637,20 +803,192 @@ const HTML_PAGE = `<!DOCTYPE html>
                     </div>
                     <div class="menu-arrow">→</div>
                     <div class="menu-actions">
-                        <button class="action-btn edit-btn" onclick="editMenu(\${index})">✏️</button>
-                        <button class="action-btn delete-btn" onclick="deleteMenu(\${index})">🗑️</button>
+                        <button class="action-btn move-btn move-up-btn" data-index="\${index}" \${isFirst ? 'disabled' : ''}>⬆️</button>
+                        <button class="action-btn move-btn move-down-btn" data-index="\${index}" \${isLast ? 'disabled' : ''}>⬇️</button>
+                        <button class="action-btn edit-btn" data-index="\${index}">✏️</button>
+                        <button class="action-btn delete-btn" data-index="\${index}">🗑️</button>
                     </div>
                 \`;
                 
                 if (editMode) {
                     newMenu.classList.add('edit-mode');
-                    newMenu.onclick = (e) => e.preventDefault();
+                    newMenu.onclick = (e) => {
+                        e.preventDefault();
+                        return false;
+                    };
+                    setupDragAndDrop(newMenu);
                 }
                 
                 container.appendChild(newMenu);
             });
+
+            bindButtonEvents();
         }
 
+        // 버튼 이벤트 바인딩
+        function bindButtonEvents() {
+            document.querySelectorAll('.move-up-btn').forEach(btn => {
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    const index = parseInt(btn.getAttribute('data-index'));
+                    moveUp(index);
+                };
+            });
+
+            document.querySelectorAll('.move-down-btn').forEach(btn => {
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    const index = parseInt(btn.getAttribute('data-index'));
+                    moveDown(index);
+                };
+            });
+
+            document.querySelectorAll('.edit-btn').forEach(btn => {
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    const index = parseInt(btn.getAttribute('data-index'));
+                    editMenu(index);
+                };
+            });
+
+            document.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    const index = parseInt(btn.getAttribute('data-index'));
+                    deleteMenu(index);
+                };
+            });
+        }
+
+        // 드래그 앤 드롭 설정
+        function setupDragAndDrop(element) {
+            element.addEventListener('dragstart', handleDragStart);
+            element.addEventListener('dragenter', handleDragEnter);
+            element.addEventListener('dragover', handleDragOver);
+            element.addEventListener('dragleave', handleDragLeave);
+            element.addEventListener('drop', handleDrop);
+            element.addEventListener('dragend', handleDragEnd);
+        }
+
+        function handleDragStart(e) {
+            draggedElement = this;
+            this.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/html', this.innerHTML);
+        }
+
+        function handleDragEnter(e) {
+            if (this !== draggedElement) {
+                this.classList.add('drag-over');
+            }
+        }
+
+        function handleDragOver(e) {
+            if (e.preventDefault) {
+                e.preventDefault();
+            }
+            e.dataTransfer.dropEffect = 'move';
+            return false;
+        }
+
+        function handleDragLeave(e) {
+            this.classList.remove('drag-over');
+        }
+
+        function handleDrop(e) {
+            if (e.stopPropagation) {
+                e.stopPropagation();
+            }
+            
+            if (draggedElement !== this) {
+                const container = document.getElementById('menuContainer');
+                const allItems = [...container.querySelectorAll('.menu-item')];
+                const draggedIndex = allItems.indexOf(draggedElement);
+                const targetIndex = allItems.indexOf(this);
+                
+                if (draggedIndex < targetIndex) {
+                    container.insertBefore(draggedElement, this.nextSibling);
+                } else {
+                    container.insertBefore(draggedElement, this);
+                }
+                
+                updateIndicesAndSave();
+            }
+            
+            return false;
+        }
+
+        function handleDragEnd(e) {
+            const items = document.querySelectorAll('.menu-item');
+            items.forEach(item => {
+                item.classList.remove('drag-over');
+                item.classList.remove('dragging');
+            });
+        }
+
+        // 위로 이동
+        function moveUp(index) {
+            if (index === 0) return;
+            
+            const container = document.getElementById('menuContainer');
+            const items = container.querySelectorAll('.menu-item');
+            const currentItem = items[index];
+            const previousItem = items[index - 1];
+            
+            container.insertBefore(currentItem, previousItem);
+            updateIndicesAndSave();
+            showSyncIndicator('순서 변경됨');
+        }
+
+        // 아래로 이동
+        function moveDown(index) {
+            const container = document.getElementById('menuContainer');
+            const items = container.querySelectorAll('.menu-item');
+            
+            if (index >= items.length - 1) return;
+            
+            const currentItem = items[index];
+            const nextItem = items[index + 1];
+            
+            container.insertBefore(nextItem, currentItem);
+            updateIndicesAndSave();
+            showSyncIndicator('순서 변경됨');
+        }
+
+        // 인덱스 업데이트 및 저장
+        function updateIndicesAndSave() {
+            const items = document.querySelectorAll('.menu-item');
+            const totalItems = items.length;
+            
+            items.forEach((item, idx) => {
+                item.setAttribute('data-index', idx);
+                
+                const moveUpBtn = item.querySelector('.move-up-btn');
+                const moveDownBtn = item.querySelector('.move-down-btn');
+                const editBtn = item.querySelector('.edit-btn');
+                const deleteBtn = item.querySelector('.delete-btn');
+                
+                if (moveUpBtn) {
+                    moveUpBtn.setAttribute('data-index', idx);
+                    moveUpBtn.disabled = idx === 0;
+                }
+                if (moveDownBtn) {
+                    moveDownBtn.setAttribute('data-index', idx);
+                    moveDownBtn.disabled = idx === totalItems - 1;
+                }
+                if (editBtn) editBtn.setAttribute('data-index', idx);
+                if (deleteBtn) deleteBtn.setAttribute('data-index', idx);
+            });
+            
+            bindButtonEvents();
+            saveMenus();
+        }
+
+        // 메뉴 저장
         async function saveMenus() {
             const menus = [];
             document.querySelectorAll('.menu-item').forEach(item => {
@@ -662,6 +1000,8 @@ const HTML_PAGE = `<!DOCTYPE html>
                 });
             });
             
+            localStorage.setItem('customMenus', JSON.stringify(menus));
+            
             try {
                 const response = await fetch('/api/menus', {
                     method: 'POST',
@@ -670,14 +1010,14 @@ const HTML_PAGE = `<!DOCTYPE html>
                 });
                 
                 if (response.ok) {
-                    showSyncIndicator('저장 완료');
+                    console.log('서버 동기화 완료');
                 }
             } catch (error) {
-                console.error('저장 실패:', error);
-                showSyncIndicator('저장 실패', true);
+                console.error('서버 저장 오류:', error);
             }
         }
 
+        // 메뉴 추가
         async function addMenu() {
             const name = document.getElementById('menuName').value;
             const desc = document.getElementById('menuDesc').value;
@@ -700,20 +1040,27 @@ const HTML_PAGE = `<!DOCTYPE html>
                 
                 if (response.ok) {
                     showSyncIndicator('메뉴 추가됨');
-                    
-                    document.getElementById('menuName').value = '';
-                    document.getElementById('menuDesc').value = '';
-                    document.getElementById('menuUrl').value = '';
-                    document.getElementById('menuIcon').value = '';
-                    
-                    loadMenus();
                 }
             } catch (error) {
-                console.error('추가 실패:', error);
-                showSyncIndicator('추가 실패', true);
+                console.error('서버 추가 오류:', error);
             }
+
+            const savedMenus = localStorage.getItem('customMenus');
+            const menus = savedMenus ? JSON.parse(savedMenus) : [];
+            menus.push(newMenu);
+            
+            renderMenus(menus);
+            saveMenus();
+
+            document.getElementById('menuName').value = '';
+            document.getElementById('menuDesc').value = '';
+            document.getElementById('menuUrl').value = '';
+            document.getElementById('menuIcon').value = '';
+
+            showSyncIndicator('메뉴 추가됨');
         }
 
+        // 메뉴 편집
         function editMenu(index) {
             const menuItem = document.querySelector(\`.menu-item[data-index="\${index}"]\`);
             currentEditIndex = index;
@@ -726,7 +1073,9 @@ const HTML_PAGE = `<!DOCTYPE html>
             document.getElementById('editModal').classList.add('active');
         }
 
+        // 편집 내용 저장
         async function saveEditMenu() {
+            const menuItem = document.querySelector(\`.menu-item[data-index="\${currentEditIndex}"]\`);
             const updatedMenu = {
                 title: document.getElementById('editMenuName').value,
                 desc: document.getElementById('editMenuDesc').value,
@@ -743,20 +1092,27 @@ const HTML_PAGE = `<!DOCTYPE html>
                 
                 if (response.ok) {
                     showSyncIndicator('메뉴 수정됨');
-                    closeEditModal();
-                    loadMenus();
                 }
             } catch (error) {
-                console.error('수정 실패:', error);
-                showSyncIndicator('수정 실패', true);
+                console.error('서버 수정 오류:', error);
             }
+            
+            menuItem.querySelector('.menu-title').textContent = updatedMenu.title;
+            menuItem.querySelector('.menu-desc').textContent = updatedMenu.desc;
+            menuItem.href = updatedMenu.url;
+            menuItem.querySelector('.menu-icon').textContent = updatedMenu.icon;
+
+            closeEditModal();
+            saveMenus();
         }
 
+        // 편집 모달 닫기
         function closeEditModal() {
             document.getElementById('editModal').classList.remove('active');
             currentEditIndex = null;
         }
 
+        // 메뉴 삭제
         async function deleteMenu(index) {
             if (confirm('정말로 이 메뉴를 삭제하시겠습니까?')) {
                 try {
@@ -766,25 +1122,70 @@ const HTML_PAGE = `<!DOCTYPE html>
                     
                     if (response.ok) {
                         showSyncIndicator('메뉴 삭제됨');
-                        loadMenus();
                     }
                 } catch (error) {
-                    console.error('삭제 실패:', error);
-                    showSyncIndicator('삭제 실패', true);
+                    console.error('서버 삭제 오류:', error);
                 }
+                
+                const menuItem = document.querySelector(\`.menu-item[data-index="\${index}"]\`);
+                menuItem.remove();
+                
+                updateIndicesAndSave();
             }
         }
 
+        // 편집 모드 토글
+        function toggleEditMode() {
+            editMode = !editMode;
+            const indicator = document.getElementById('editModeIndicator');
+            const menuItems = document.querySelectorAll('.menu-item');
+            const editBtn = document.getElementById('toggleEditBtn');
+
+            if (editMode) {
+                indicator.classList.add('active');
+                menuItems.forEach(item => {
+                    item.classList.add('edit-mode');
+                    item.draggable = true;
+                    item.onclick = (e) => {
+                        e.preventDefault();
+                        return false;
+                    };
+                    setupDragAndDrop(item);
+                });
+                editBtn.textContent = '편집 모드 종료';
+                editBtn.style.background = '#8b2635';
+            } else {
+                indicator.classList.remove('active');
+                menuItems.forEach(item => {
+                    item.classList.remove('edit-mode');
+                    item.draggable = false;
+                    item.onclick = null;
+                });
+                editBtn.textContent = '편집 모드 시작';
+                editBtn.style.background = '#1E6FFF';
+            }
+            bindButtonEvents();
+        }
+
+        // 이벤트 리스너 설정
         document.getElementById('settingsBtn').addEventListener('click', function() {
-            document.getElementById('passwordModal').classList.add('active');
-            document.getElementById('passwordInput').focus();
+            if (isPasswordSaved()) {
+                document.getElementById('settingsPanel').classList.add('active');
+            } else {
+                document.getElementById('passwordModal').classList.add('active');
+                document.getElementById('passwordInput').focus();
+            }
         });
+
+        document.getElementById('passwordConfirmBtn').addEventListener('click', checkPassword);
+        document.getElementById('passwordCancelBtn').addEventListener('click', closePasswordModal);
 
         function checkPassword() {
             const input = document.getElementById('passwordInput').value;
             const errorMsg = document.getElementById('passwordError');
             
             if (input === PASSWORD) {
+                localStorage.setItem('passwordTime', new Date().getTime().toString());
                 closePasswordModal();
                 document.getElementById('settingsPanel').classList.add('active');
             } else {
@@ -808,58 +1209,50 @@ const HTML_PAGE = `<!DOCTYPE html>
             }
         });
 
-        function switchTab(tab) {
+        // 탭 전환
+        document.getElementById('addTabBtn').addEventListener('click', function() {
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
-
+            this.classList.add('active');
             document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            if (tab === 'add') {
-                document.getElementById('addTab').classList.add('active');
-            } else {
-                document.getElementById('editTab').classList.add('active');
-            }
-        }
+            document.getElementById('addTab').classList.add('active');
+        });
 
-        function toggleEditMode() {
-            editMode = !editMode;
-            const indicator = document.getElementById('editModeIndicator');
-            const menuItems = document.querySelectorAll('.menu-item');
-            const editBtn = event.target;
+        document.getElementById('editTabBtn').addEventListener('click', function() {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            this.classList.add('active');
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById('editTab').classList.add('active');
+        });
 
-            if (editMode) {
-                indicator.classList.add('active');
-                menuItems.forEach(item => {
-                    item.classList.add('edit-mode');
-                    item.onclick = (e) => {
-                        if (editMode) {
-                            e.preventDefault();
-                        }
-                    };
-                });
-                editBtn.textContent = '편집 모드 종료';
-                editBtn.style.background = '#8b2635';
-            } else {
-                indicator.classList.remove('active');
-                menuItems.forEach(item => {
-                    item.classList.remove('edit-mode');
-                    item.onclick = null;
-                });
-                editBtn.textContent = '편집 모드 시작';
-                editBtn.style.background = '#1E6FFF';
-            }
-        }
-
-        function closeSettings() {
+        // 버튼 이벤트
+        document.getElementById('addMenuBtn').addEventListener('click', addMenu);
+        document.getElementById('toggleEditBtn').addEventListener('click', toggleEditMode);
+        document.getElementById('closeSettingsBtn').addEventListener('click', function() {
             document.getElementById('settingsPanel').classList.remove('active');
             if (editMode) {
                 toggleEditMode();
             }
-        }
-
-        window.addEventListener('load', function() {
-            loadMenus();
         });
 
+        document.getElementById('logoutBtn').addEventListener('click', function() {
+            localStorage.removeItem('passwordTime');
+            alert('비밀번호가 초기화되었습니다.');
+            document.getElementById('settingsPanel').classList.remove('active');
+            if (editMode) {
+                toggleEditMode();
+            }
+        });
+
+        // 편집 모달 버튼
+        document.getElementById('saveEditBtn').addEventListener('click', saveEditMenu);
+        document.getElementById('closeEditBtn').addEventListener('click', closeEditModal);
+
+        // 초기화
+        window.addEventListener('load', async function() {
+            await loadMenus();
+        });
+
+        // 클릭 외부 영역 클릭 시 설정 패널 닫기
         document.addEventListener('click', function(e) {
             const settingsBtn = document.getElementById('settingsBtn');
             const settingsPanel = document.getElementById('settingsPanel');
@@ -876,6 +1269,16 @@ const HTML_PAGE = `<!DOCTYPE html>
     </script>
 </body>
 </html>`;
+
+// 메인 페이지 제공
+app.get('/', (req, res) => {
+    res.send(HTML_PAGE);
+});
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+    res.status(200).send('OK');
+});
 
 // 초기 데이터 파일 생성
 async function initDataFile() {
@@ -898,6 +1301,24 @@ async function initDataFile() {
                         desc: "실적 입력 및 관리",
                         url: "https://ajdsns.vercel.app/",
                         icon: "📊"
+                    },
+                    {
+                        title: "가망상담건 유치자변경 보고시스템",
+                        desc: "상요 > 가망 유치자공란 건",
+                        url: "https://sangyo-system.vercel.app/",
+                        icon: "🔄"
+                    },
+                    {
+                        title: "취소양식 관리 시스템",
+                        desc: "취소양식 생성 및 관리",
+                        url: "https://cancel-report.vercel.app/",
+                        icon: "📋"
+                    },
+                    {
+                        title: "SNS센터 채팅분석 프로그램",
+                        desc: "채널톡 채팅 심층분석",
+                        url: "https://chat-analyzer-ql7u.onrender.com/",
+                        icon: "📈"
                     }
                 ]
             };
@@ -909,20 +1330,46 @@ async function initDataFile() {
     }
 }
 
-// 메인 페이지 제공
-app.get('/', (req, res) => {
-    res.send(HTML_PAGE);
-});
-
 // API 엔드포인트들
 app.get('/api/menus', async (req, res) => {
     try {
         const data = await fs.readFile(DATA_FILE, 'utf8');
         const jsonData = JSON.parse(data);
-        res.json(jsonData.menus);
+        res.json(jsonData.menus || jsonData);
     } catch (error) {
         console.error('메뉴 로드 오류:', error);
-        res.status(500).json({ error: '메뉴를 불러올 수 없습니다.' });
+        res.json([
+            {
+                title: "채널톡 미답변 상담 모니터 프로그램",
+                desc: "미답변 상담 모니터링",
+                url: "https://channeltalk-server.onrender.com/",
+                icon: "💬"
+            },
+            {
+                title: "SNS센터 실적보고",
+                desc: "실적 입력 및 관리",
+                url: "https://ajdsns.vercel.app/",
+                icon: "📊"
+            },
+            {
+                title: "가망상담건 유치자변경 보고시스템",
+                desc: "상요 > 가망 유치자공란 건",
+                url: "https://sangyo-system.vercel.app/",
+                icon: "🔄"
+            },
+            {
+                title: "취소양식 관리 시스템",
+                desc: "취소양식 생성 및 관리",
+                url: "https://cancel-report.vercel.app/",
+                icon: "📋"
+            },
+            {
+                title: "SNS센터 채팅분석 프로그램",
+                desc: "채널톡 채팅 심층분석",
+                url: "https://chat-analyzer-ql7u.onrender.com/",
+                icon: "📈"
+            }
+        ]);
     }
 });
 
@@ -951,10 +1398,11 @@ app.post('/api/menus/add', async (req, res) => {
         const data = await fs.readFile(DATA_FILE, 'utf8');
         const jsonData = JSON.parse(data);
         
-        jsonData.menus.push(newMenu);
-        jsonData.lastUpdated = new Date().toISOString();
+        const menus = jsonData.menus || jsonData;
+        menus.push(newMenu);
         
-        await fs.writeFile(DATA_FILE, JSON.stringify(jsonData, null, 2));
+        const saveData = { menus, lastUpdated: new Date().toISOString() };
+        await fs.writeFile(DATA_FILE, JSON.stringify(saveData, null, 2));
         
         res.json({ success: true, menu: newMenu });
     } catch (error) {
@@ -970,12 +1418,13 @@ app.put('/api/menus/:index', async (req, res) => {
         
         const data = await fs.readFile(DATA_FILE, 'utf8');
         const jsonData = JSON.parse(data);
+        const menus = jsonData.menus || jsonData;
         
-        if (index >= 0 && index < jsonData.menus.length) {
-            jsonData.menus[index] = updatedMenu;
-            jsonData.lastUpdated = new Date().toISOString();
+        if (index >= 0 && index < menus.length) {
+            menus[index] = updatedMenu;
             
-            await fs.writeFile(DATA_FILE, JSON.stringify(jsonData, null, 2));
+            const saveData = { menus, lastUpdated: new Date().toISOString() };
+            await fs.writeFile(DATA_FILE, JSON.stringify(saveData, null, 2));
             
             res.json({ success: true, menu: updatedMenu });
         } else {
@@ -993,12 +1442,13 @@ app.delete('/api/menus/:index', async (req, res) => {
         
         const data = await fs.readFile(DATA_FILE, 'utf8');
         const jsonData = JSON.parse(data);
+        const menus = jsonData.menus || jsonData;
         
-        if (index >= 0 && index < jsonData.menus.length) {
-            jsonData.menus.splice(index, 1);
-            jsonData.lastUpdated = new Date().toISOString();
+        if (index >= 0 && index < menus.length) {
+            menus.splice(index, 1);
             
-            await fs.writeFile(DATA_FILE, JSON.stringify(jsonData, null, 2));
+            const saveData = { menus, lastUpdated: new Date().toISOString() };
+            await fs.writeFile(DATA_FILE, JSON.stringify(saveData, null, 2));
             
             res.json({ success: true });
         } else {
@@ -1011,8 +1461,7 @@ app.delete('/api/menus/:index', async (req, res) => {
 });
 
 // 서버 시작
-app.listen(PORT, async () => {
+app.listen(PORT, '0.0.0.0', async () => {
     await initDataFile();
     console.log(`서버가 포트 ${PORT}에서 실행 중입니다.`);
-    console.log(`http://localhost:${PORT}`);
 });
