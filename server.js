@@ -13,7 +13,7 @@ app.use(express.json());
 // 데이터 파일 경로
 const DATA_FILE = path.join(__dirname, 'data', 'menus.json');
 
-// HTML 페이지 (최신 버전)
+// HTML 페이지 (관리자 모드 추가)
 const HTML_PAGE = `<!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -22,7 +22,7 @@ const HTML_PAGE = `<!DOCTYPE html>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>SNS센터 업무 허브 v2.0</title>
+    <title>SNS센터 업무 허브 v3.0</title>
     <style>
         * {
             margin: 0;
@@ -51,6 +51,24 @@ const HTML_PAGE = `<!DOCTYPE html>
             font-size: 32px;
             font-weight: bold;
             color: #4A9EFF;
+        }
+
+        .admin-indicator {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            padding: 6px 12px;
+            background: #FFD700;
+            color: #000;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: bold;
+            display: none;
+            z-index: 1001;
+        }
+
+        .admin-indicator.active {
+            display: block;
         }
 
         .sync-indicator {
@@ -128,6 +146,10 @@ const HTML_PAGE = `<!DOCTYPE html>
             position: relative;
         }
 
+        .menu-item.admin-menu {
+            background: linear-gradient(90deg, #1a1a1a 0%, #1f1a00 100%);
+        }
+
         .menu-item.dragging {
             opacity: 0.5;
             background: #2a5298;
@@ -145,6 +167,10 @@ const HTML_PAGE = `<!DOCTYPE html>
         .menu-item:hover {
             background: #252525;
             padding-left: 28px;
+        }
+
+        .menu-item.admin-menu:hover {
+            background: #2a2500;
         }
 
         .menu-item.edit-mode {
@@ -168,6 +194,11 @@ const HTML_PAGE = `<!DOCTYPE html>
             font-size: 18px;
         }
 
+        .menu-item.admin-menu .menu-icon {
+            background: #FFD700;
+            color: #000;
+        }
+
         .menu-content {
             flex: 1;
         }
@@ -182,6 +213,17 @@ const HTML_PAGE = `<!DOCTYPE html>
         .menu-desc {
             font-size: 13px;
             color: #8a8a8a;
+        }
+
+        .admin-badge {
+            display: inline-block;
+            margin-left: 8px;
+            padding: 2px 6px;
+            background: #FFD700;
+            color: #000;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: bold;
         }
 
         .menu-arrow {
@@ -456,6 +498,25 @@ const HTML_PAGE = `<!DOCTYPE html>
             border-color: #1E6FFF;
         }
 
+        .settings-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .settings-checkbox input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+
+        .settings-checkbox label {
+            font-size: 12px;
+            color: #FFD700;
+            cursor: pointer;
+        }
+
         .settings-save {
             width: 100%;
             padding: 10px;
@@ -502,6 +563,32 @@ const HTML_PAGE = `<!DOCTYPE html>
         }
 
         .logout-btn:hover {
+            background: #9b3645;
+        }
+
+        .admin-login-btn {
+            width: 100%;
+            padding: 10px;
+            background: #FFD700;
+            color: #000;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+
+        .admin-login-btn:hover {
+            background: #FFC700;
+        }
+
+        .admin-login-btn.logout {
+            background: #8b2635;
+            color: white;
+        }
+
+        .admin-login-btn.logout:hover {
             background: #9b3645;
         }
 
@@ -589,6 +676,8 @@ const HTML_PAGE = `<!DOCTYPE html>
     </style>
 </head>
 <body>
+    <div class="admin-indicator" id="adminIndicator">👑 관리자 모드</div>
+    
     <div class="container">
         <div class="logo">SNS센터 업무 허브</div>
         <div class="edit-mode-indicator" id="editModeIndicator">📝 편집 모드 (드래그로 순서 변경 가능)</div>
@@ -605,7 +694,7 @@ const HTML_PAGE = `<!DOCTYPE html>
     <!-- 비밀번호 모달 -->
     <div class="password-modal" id="passwordModal">
         <div class="password-box">
-            <div class="password-title">비밀번호 입력</div>
+            <div class="password-title" id="passwordTitle">비밀번호 입력</div>
             <input type="password" class="password-input" id="passwordInput" placeholder="****" maxlength="4">
             <div class="password-error" id="passwordError">비밀번호가 틀렸습니다</div>
             <div class="password-buttons">
@@ -641,6 +730,10 @@ const HTML_PAGE = `<!DOCTYPE html>
                 <div class="settings-label">아이콘 (이모지)</div>
                 <input type="text" class="settings-input" id="menuIcon" placeholder="📝" maxlength="2">
             </div>
+            <div class="settings-checkbox">
+                <input type="checkbox" id="isAdminMenu">
+                <label for="isAdminMenu">👑 관리자 전용 메뉴</label>
+            </div>
             <button class="settings-save" id="addMenuBtn">메뉴 추가</button>
         </div>
 
@@ -661,7 +754,7 @@ const HTML_PAGE = `<!DOCTYPE html>
             </div>
             
             <button class="settings-close" id="closeSettingsBtn">설정 닫기</button>
-            <button class="logout-btn" id="logoutBtn">비밀번호 초기화</button>
+            <button class="logout-btn" id="logoutBtn">로그아웃</button>
         </div>
     </div>
 
@@ -685,6 +778,10 @@ const HTML_PAGE = `<!DOCTYPE html>
                 <div class="settings-label">아이콘 (이모지)</div>
                 <input type="text" class="settings-input" id="editMenuIcon" maxlength="2">
             </div>
+            <div class="settings-checkbox">
+                <input type="checkbox" id="editIsAdminMenu">
+                <label for="editIsAdminMenu">👑 관리자 전용 메뉴</label>
+            </div>
             <button class="settings-save" id="saveEditBtn">저장</button>
             <button class="settings-close" id="closeEditBtn">취소</button>
         </div>
@@ -696,19 +793,41 @@ const HTML_PAGE = `<!DOCTYPE html>
         let currentEditIndex = null;
         let draggedElement = null;
         let serverOnline = true;
+        let isAdminMode = false;
+
+        // 관리자 모드 UI 업데이트
+        function updateAdminUI() {
+            const indicator = document.getElementById('adminIndicator');
+            const adminBtn = document.getElementById('adminLoginBtn');
+            
+            if (isAdminMode) {
+                indicator.classList.add('active');
+                adminBtn.textContent = '👑 관리자 로그아웃';
+                adminBtn.classList.add('logout');
+            } else {
+                indicator.classList.remove('active');
+                adminBtn.textContent = '👑 관리자 로그인';
+                adminBtn.classList.remove('logout');
+            }
+            
+            loadMenus();
+        }
 
         // 비밀번호 확인 - 로컬스토리지 체크
         function isPasswordSaved() {
             const savedTime = localStorage.getItem('passwordTime');
             if (!savedTime) return false;
             
-            // 24시간 후 만료
             const EXPIRE_TIME = 24 * 60 * 60 * 1000;
             const now = new Date().getTime();
             if (now - parseInt(savedTime) > EXPIRE_TIME) {
                 localStorage.removeItem('passwordTime');
+                localStorage.removeItem('adminTime');
                 return false;
             }
+            
+            // 비밀번호가 저장되어 있으면 관리자 모드도 자동 활성화
+            isAdminMode = true;
             return true;
         }
 
@@ -729,7 +848,13 @@ const HTML_PAGE = `<!DOCTYPE html>
             try {
                 const response = await fetch('/api/menus');
                 if (response.ok) {
-                    const menus = await response.json();
+                    let menus = await response.json();
+                    
+                    // 관리자 모드가 아니면 일반 메뉴만 필터링
+                    if (!isAdminMode) {
+                        menus = menus.filter(menu => !menu.isAdmin);
+                    }
+                    
                     renderMenus(menus);
                     localStorage.setItem('customMenus', JSON.stringify(menus));
                     return;
@@ -740,7 +865,13 @@ const HTML_PAGE = `<!DOCTYPE html>
             
             const savedMenus = localStorage.getItem('customMenus');
             if (savedMenus) {
-                const menus = JSON.parse(savedMenus);
+                let menus = JSON.parse(savedMenus);
+                
+                // 관리자 모드가 아니면 일반 메뉴만 필터링
+                if (!isAdminMode) {
+                    menus = menus.filter(menu => !menu.isAdmin);
+                }
+                
                 renderMenus(menus);
             } else {
                 const defaultMenus = [
@@ -748,34 +879,53 @@ const HTML_PAGE = `<!DOCTYPE html>
                         title: "채널톡 미답변 상담 모니터 프로그램",
                         desc: "미답변 상담 모니터링",
                         url: "https://channeltalk-server.onrender.com/",
-                        icon: "💬"
+                        icon: "💬",
+                        isAdmin: false
                     },
                     {
                         title: "SNS센터 실적보고",
                         desc: "실적 입력 및 관리",
                         url: "https://ajdsns.vercel.app/",
-                        icon: "📊"
+                        icon: "📊",
+                        isAdmin: false
                     },
                     {
                         title: "가망상담건 유치자변경 보고시스템",
                         desc: "상요 > 가망 유치자공란 건",
                         url: "https://sangyo-system.vercel.app/",
-                        icon: "🔄"
+                        icon: "🔄",
+                        isAdmin: false
                     },
                     {
                         title: "취소양식 관리 시스템",
                         desc: "취소양식 생성 및 관리",
                         url: "https://cancel-report.vercel.app/",
-                        icon: "📋"
+                        icon: "📋",
+                        isAdmin: false
                     },
                     {
                         title: "SNS센터 채팅분석 프로그램",
                         desc: "채널톡 채팅 심층분석",
                         url: "https://chat-analyzer-ql7u.onrender.com/",
-                        icon: "📈"
+                        icon: "📈",
+                        isAdmin: false
+                    },
+                    {
+                        title: "채널톡 채팅분석 프로그램",
+                        desc: "관리자용 채널톡 채팅 심층분석",
+                        url: "https://chat-analyzer-ql7u.onrender.com",
+                        icon: "🔍",
+                        isAdmin: true
                     }
                 ];
-                renderMenus(defaultMenus);
+                
+                // 관리자 모드가 아니면 일반 메뉴만 필터링
+                let filteredMenus = defaultMenus;
+                if (!isAdminMode) {
+                    filteredMenus = defaultMenus.filter(menu => !menu.isAdmin);
+                }
+                
+                renderMenus(filteredMenus);
             }
         }
 
@@ -787,7 +937,7 @@ const HTML_PAGE = `<!DOCTYPE html>
             menus.forEach((menu, index) => {
                 const newMenu = document.createElement('a');
                 newMenu.href = menu.url;
-                newMenu.className = 'menu-item';
+                newMenu.className = menu.isAdmin ? 'menu-item admin-menu' : 'menu-item';
                 newMenu.target = '_blank';
                 newMenu.setAttribute('data-index', index);
                 newMenu.draggable = editMode;
@@ -798,7 +948,10 @@ const HTML_PAGE = `<!DOCTYPE html>
                 newMenu.innerHTML = \`
                     <div class="menu-icon">\${menu.icon}</div>
                     <div class="menu-content">
-                        <div class="menu-title">\${menu.title}</div>
+                        <div class="menu-title">
+                            \${menu.title}
+                            \${menu.isAdmin ? '<span class="admin-badge">관리자</span>' : ''}
+                        </div>
                         <div class="menu-desc">\${menu.desc}</div>
                     </div>
                     <div class="menu-arrow">→</div>
@@ -988,17 +1141,31 @@ const HTML_PAGE = `<!DOCTYPE html>
             saveMenus();
         }
 
-        // 메뉴 저장
+        // 메뉴 저장 (전체 메뉴 저장)
         async function saveMenus() {
             const menus = [];
+            
+            // 로컬 스토리지에서 전체 메뉴 가져오기
+            const savedMenus = localStorage.getItem('customMenus');
+            let allMenus = savedMenus ? JSON.parse(savedMenus) : [];
+            
+            // 현재 표시된 메뉴 수집
             document.querySelectorAll('.menu-item').forEach(item => {
+                const isAdmin = item.classList.contains('admin-menu');
                 menus.push({
-                    title: item.querySelector('.menu-title').textContent,
+                    title: item.querySelector('.menu-title').textContent.replace(/관리자/g, '').trim(),
                     desc: item.querySelector('.menu-desc').textContent,
                     url: item.href,
-                    icon: item.querySelector('.menu-icon').textContent
+                    icon: item.querySelector('.menu-icon').textContent,
+                    isAdmin: isAdmin
                 });
             });
+            
+            // 관리자 모드가 아닌 경우, 숨겨진 관리자 메뉴 보존
+            if (!isAdminMode) {
+                const hiddenAdminMenus = allMenus.filter(menu => menu.isAdmin);
+                menus.push(...hiddenAdminMenus);
+            }
             
             localStorage.setItem('customMenus', JSON.stringify(menus));
             
@@ -1023,13 +1190,14 @@ const HTML_PAGE = `<!DOCTYPE html>
             const desc = document.getElementById('menuDesc').value;
             const url = document.getElementById('menuUrl').value;
             const icon = document.getElementById('menuIcon').value || '📋';
+            const isAdmin = document.getElementById('isAdminMenu').checked;
 
             if (!name || !url) {
                 alert('메뉴 이름과 URL은 필수입니다.');
                 return;
             }
 
-            const newMenu = { title: name, desc: desc || '', url, icon };
+            const newMenu = { title: name, desc: desc || '', url, icon, isAdmin };
             
             try {
                 const response = await fetch('/api/menus/add', {
@@ -1049,13 +1217,14 @@ const HTML_PAGE = `<!DOCTYPE html>
             const menus = savedMenus ? JSON.parse(savedMenus) : [];
             menus.push(newMenu);
             
-            renderMenus(menus);
-            saveMenus();
+            localStorage.setItem('customMenus', JSON.stringify(menus));
+            loadMenus();
 
             document.getElementById('menuName').value = '';
             document.getElementById('menuDesc').value = '';
             document.getElementById('menuUrl').value = '';
             document.getElementById('menuIcon').value = '';
+            document.getElementById('isAdminMenu').checked = false;
 
             showSyncIndicator('메뉴 추가됨');
         }
@@ -1065,10 +1234,18 @@ const HTML_PAGE = `<!DOCTYPE html>
             const menuItem = document.querySelector(\`.menu-item[data-index="\${index}"]\`);
             currentEditIndex = index;
 
-            document.getElementById('editMenuName').value = menuItem.querySelector('.menu-title').textContent;
+            // 전체 메뉴에서 해당 메뉴 찾기
+            const savedMenus = localStorage.getItem('customMenus');
+            const allMenus = savedMenus ? JSON.parse(savedMenus) : [];
+            
+            const menuTitle = menuItem.querySelector('.menu-title').textContent.replace(/관리자/g, '').trim();
+            const menuData = allMenus.find(m => m.title === menuTitle);
+
+            document.getElementById('editMenuName').value = menuTitle;
             document.getElementById('editMenuDesc').value = menuItem.querySelector('.menu-desc').textContent;
             document.getElementById('editMenuUrl').value = menuItem.href;
             document.getElementById('editMenuIcon').value = menuItem.querySelector('.menu-icon').textContent;
+            document.getElementById('editIsAdminMenu').checked = menuData ? menuData.isAdmin : false;
 
             document.getElementById('editModal').classList.add('active');
         }
@@ -1080,7 +1257,8 @@ const HTML_PAGE = `<!DOCTYPE html>
                 title: document.getElementById('editMenuName').value,
                 desc: document.getElementById('editMenuDesc').value,
                 url: document.getElementById('editMenuUrl').value,
-                icon: document.getElementById('editMenuIcon').value
+                icon: document.getElementById('editMenuIcon').value,
+                isAdmin: document.getElementById('editIsAdminMenu').checked
             };
             
             try {
@@ -1097,13 +1275,21 @@ const HTML_PAGE = `<!DOCTYPE html>
                 console.error('서버 수정 오류:', error);
             }
             
-            menuItem.querySelector('.menu-title').textContent = updatedMenu.title;
-            menuItem.querySelector('.menu-desc').textContent = updatedMenu.desc;
-            menuItem.href = updatedMenu.url;
-            menuItem.querySelector('.menu-icon').textContent = updatedMenu.icon;
+            // 전체 메뉴 업데이트
+            const savedMenus = localStorage.getItem('customMenus');
+            const allMenus = savedMenus ? JSON.parse(savedMenus) : [];
+            
+            const oldTitle = menuItem.querySelector('.menu-title').textContent.replace(/관리자/g, '').trim();
+            const menuIndex = allMenus.findIndex(m => m.title === oldTitle);
+            
+            if (menuIndex !== -1) {
+                allMenus[menuIndex] = updatedMenu;
+            }
+            
+            localStorage.setItem('customMenus', JSON.stringify(allMenus));
 
             closeEditModal();
-            saveMenus();
+            loadMenus();
         }
 
         // 편집 모달 닫기
@@ -1128,8 +1314,15 @@ const HTML_PAGE = `<!DOCTYPE html>
                 }
                 
                 const menuItem = document.querySelector(\`.menu-item[data-index="\${index}"]\`);
-                menuItem.remove();
+                const menuTitle = menuItem.querySelector('.menu-title').textContent.replace(/관리자/g, '').trim();
                 
+                // 전체 메뉴에서 삭제
+                const savedMenus = localStorage.getItem('customMenus');
+                let allMenus = savedMenus ? JSON.parse(savedMenus) : [];
+                allMenus = allMenus.filter(m => m.title !== menuTitle);
+                localStorage.setItem('customMenus', JSON.stringify(allMenus));
+                
+                menuItem.remove();
                 updateIndicesAndSave();
             }
         }
@@ -1171,8 +1364,11 @@ const HTML_PAGE = `<!DOCTYPE html>
         document.getElementById('settingsBtn').addEventListener('click', function() {
             if (isPasswordSaved()) {
                 document.getElementById('settingsPanel').classList.add('active');
+                isAdminMode = true;
+                updateAdminUI();
             } else {
                 document.getElementById('passwordModal').classList.add('active');
+                document.getElementById('passwordTitle').textContent = '비밀번호 입력';
                 document.getElementById('passwordInput').focus();
             }
         });
@@ -1185,9 +1381,14 @@ const HTML_PAGE = `<!DOCTYPE html>
             const errorMsg = document.getElementById('passwordError');
             
             if (input === PASSWORD) {
+                // 비밀번호 맞으면 자동으로 관리자 모드 활성화
                 localStorage.setItem('passwordTime', new Date().getTime().toString());
+                localStorage.setItem('adminTime', new Date().getTime().toString());
+                isAdminMode = true;
                 closePasswordModal();
                 document.getElementById('settingsPanel').classList.add('active');
+                updateAdminUI();
+                showSyncIndicator('관리자 모드 활성화');
             } else {
                 errorMsg.style.display = 'block';
                 document.getElementById('passwordInput').value = '';
@@ -1236,7 +1437,10 @@ const HTML_PAGE = `<!DOCTYPE html>
 
         document.getElementById('logoutBtn').addEventListener('click', function() {
             localStorage.removeItem('passwordTime');
-            alert('비밀번호가 초기화되었습니다.');
+            localStorage.removeItem('adminTime');
+            isAdminMode = false;
+            updateAdminUI();
+            alert('로그아웃되었습니다.');
             document.getElementById('settingsPanel').classList.remove('active');
             if (editMode) {
                 toggleEditMode();
@@ -1249,7 +1453,11 @@ const HTML_PAGE = `<!DOCTYPE html>
 
         // 초기화
         window.addEventListener('load', async function() {
-            await loadMenus();
+            // 저장된 비밀번호가 있으면 관리자 모드 활성화
+            if (isPasswordSaved()) {
+                isAdminMode = true;
+            }
+            updateAdminUI();
         });
 
         // 클릭 외부 영역 클릭 시 설정 패널 닫기
@@ -1294,31 +1502,43 @@ async function initDataFile() {
                         title: "채널톡 미답변 상담 모니터 프로그램",
                         desc: "미답변 상담 모니터링",
                         url: "https://channeltalk-server.onrender.com/",
-                        icon: "💬"
+                        icon: "💬",
+                        isAdmin: false
                     },
                     {
                         title: "SNS센터 실적보고",
                         desc: "실적 입력 및 관리",
                         url: "https://ajdsns.vercel.app/",
-                        icon: "📊"
+                        icon: "📊",
+                        isAdmin: false
                     },
                     {
                         title: "가망상담건 유치자변경 보고시스템",
                         desc: "상요 > 가망 유치자공란 건",
                         url: "https://sangyo-system.vercel.app/",
-                        icon: "🔄"
+                        icon: "🔄",
+                        isAdmin: false
                     },
                     {
                         title: "취소양식 관리 시스템",
                         desc: "취소양식 생성 및 관리",
                         url: "https://cancel-report.vercel.app/",
-                        icon: "📋"
+                        icon: "📋",
+                        isAdmin: false
                     },
                     {
                         title: "SNS센터 채팅분석 프로그램",
                         desc: "채널톡 채팅 심층분석",
                         url: "https://chat-analyzer-ql7u.onrender.com/",
-                        icon: "📈"
+                        icon: "📈",
+                        isAdmin: false
+                    },
+                    {
+                        title: "채널톡 채팅분석 프로그램",
+                        desc: "관리자용 채널톡 채팅 심층분석",
+                        url: "https://chat-analyzer-ql7u.onrender.com",
+                        icon: "🔍",
+                        isAdmin: true
                     }
                 ]
             };
@@ -1343,31 +1563,43 @@ app.get('/api/menus', async (req, res) => {
                 title: "채널톡 미답변 상담 모니터 프로그램",
                 desc: "미답변 상담 모니터링",
                 url: "https://channeltalk-server.onrender.com/",
-                icon: "💬"
+                icon: "💬",
+                isAdmin: false
             },
             {
                 title: "SNS센터 실적보고",
                 desc: "실적 입력 및 관리",
                 url: "https://ajdsns.vercel.app/",
-                icon: "📊"
+                icon: "📊",
+                isAdmin: false
             },
             {
                 title: "가망상담건 유치자변경 보고시스템",
                 desc: "상요 > 가망 유치자공란 건",
                 url: "https://sangyo-system.vercel.app/",
-                icon: "🔄"
+                icon: "🔄",
+                isAdmin: false
             },
             {
                 title: "취소양식 관리 시스템",
                 desc: "취소양식 생성 및 관리",
                 url: "https://cancel-report.vercel.app/",
-                icon: "📋"
+                icon: "📋",
+                isAdmin: false
             },
             {
                 title: "SNS센터 채팅분석 프로그램",
                 desc: "채널톡 채팅 심층분석",
                 url: "https://chat-analyzer-ql7u.onrender.com/",
-                icon: "📈"
+                icon: "📈",
+                isAdmin: false
+            },
+            {
+                title: "채널톡 채팅분석 프로그램",
+                desc: "관리자용 채널톡 채팅 심층분석",
+                url: "https://chat-analyzer-ql7u.onrender.com",
+                icon: "🔍",
+                isAdmin: true
             }
         ]);
     }
