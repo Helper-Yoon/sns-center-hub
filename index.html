@@ -111,10 +111,12 @@
 
         .menu-item.dragging {
             opacity: 0.5;
+            background: #2a5298;
         }
 
         .menu-item.drag-over {
             background: #2a5298;
+            border-top: 2px solid #4A9EFF;
         }
 
         .menu-item:last-child {
@@ -124,6 +126,10 @@
         .menu-item:hover {
             background: #252525;
             padding-left: 28px;
+        }
+
+        .menu-item.edit-mode {
+            cursor: move;
         }
 
         .menu-item.edit-mode:hover {
@@ -465,6 +471,22 @@
             color: white;
         }
 
+        .logout-btn {
+            width: 100%;
+            padding: 10px;
+            background: #8b2635;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+
+        .logout-btn:hover {
+            background: #9b3645;
+        }
+
         .server-config {
             margin-top: 15px;
             padding-top: 15px;
@@ -570,8 +592,8 @@
             <input type="password" class="password-input" id="passwordInput" placeholder="****" maxlength="4">
             <div class="password-error" id="passwordError">비밀번호가 틀렸습니다</div>
             <div class="password-buttons">
-                <button class="password-btn password-cancel" onclick="closePasswordModal()">취소</button>
-                <button class="password-btn password-confirm" onclick="checkPassword()">확인</button>
+                <button class="password-btn password-cancel" id="passwordCancelBtn">취소</button>
+                <button class="password-btn password-confirm" id="passwordConfirmBtn">확인</button>
             </div>
         </div>
     </div>
@@ -579,8 +601,8 @@
     <!-- 설정 패널 -->
     <div class="settings-panel" id="settingsPanel">
         <div class="settings-tabs">
-            <button class="tab-btn active" onclick="switchTab('add')">메뉴 추가</button>
-            <button class="tab-btn" onclick="switchTab('edit')">메뉴 편집</button>
+            <button class="tab-btn active" id="addTabBtn">메뉴 추가</button>
+            <button class="tab-btn" id="editTabBtn">메뉴 편집</button>
         </div>
 
         <!-- 메뉴 추가 탭 -->
@@ -602,7 +624,7 @@
                 <div class="settings-label">아이콘 (이모지)</div>
                 <input type="text" class="settings-input" id="menuIcon" placeholder="📝" maxlength="2">
             </div>
-            <button class="settings-save" onclick="addMenu()">메뉴 추가</button>
+            <button class="settings-save" id="addMenuBtn">메뉴 추가</button>
         </div>
 
         <!-- 메뉴 편집 탭 -->
@@ -612,7 +634,7 @@
                 드래그 앤 드롭 또는 화살표 버튼으로 순서 변경<br>
                 편집(✏️) 또는 삭제(🗑️) 버튼 클릭
             </p>
-            <button class="settings-save" onclick="toggleEditMode()">편집 모드 시작</button>
+            <button class="settings-save" id="toggleEditBtn">편집 모드 시작</button>
             
             <div class="server-config">
                 <div class="server-status">
@@ -623,10 +645,11 @@
                     <div class="settings-label">서버 주소</div>
                     <input type="text" class="settings-input" id="serverUrl" placeholder="https://sns-hub-server.onrender.com">
                 </div>
-                <button class="settings-save" onclick="saveServerConfig()">서버 설정 저장</button>
+                <button class="settings-save" id="saveServerBtn">서버 설정 저장</button>
             </div>
             
-            <button class="settings-close" onclick="closeSettings()">설정 닫기</button>
+            <button class="settings-close" id="closeSettingsBtn">설정 닫기</button>
+            <button class="logout-btn" id="logoutBtn">비밀번호 초기화</button>
         </div>
     </div>
 
@@ -650,8 +673,8 @@
                 <div class="settings-label">아이콘 (이모지)</div>
                 <input type="text" class="settings-input" id="editMenuIcon" maxlength="2">
             </div>
-            <button class="settings-save" onclick="saveEditMenu()">저장</button>
-            <button class="settings-close" onclick="closeEditModal()">취소</button>
+            <button class="settings-save" id="saveEditBtn">저장</button>
+            <button class="settings-close" id="closeEditBtn">취소</button>
         </div>
     </div>
 
@@ -665,6 +688,21 @@
 
         // 서버 URL 입력 필드 초기화
         document.getElementById('serverUrl').value = SERVER_URL;
+
+        // 비밀번호 확인 - 로컬스토리지 체크
+        function isPasswordSaved() {
+            const savedTime = localStorage.getItem('passwordTime');
+            if (!savedTime) return false;
+            
+            // 24시간 후 만료
+            const EXPIRE_TIME = 24 * 60 * 60 * 1000;
+            const now = new Date().getTime();
+            if (now - parseInt(savedTime) > EXPIRE_TIME) {
+                localStorage.removeItem('passwordTime');
+                return false;
+            }
+            return true;
+        }
 
         // 동기화 표시
         function showSyncIndicator(message, isError = false) {
@@ -698,26 +736,6 @@
                 document.getElementById('serverStatusText').textContent = '서버 오프라인 (로컬 모드)';
                 console.error('서버 연결 실패:', error);
                 return false;
-            }
-        }
-
-        // 서버 설정 저장
-        async function saveServerConfig() {
-            const newUrl = document.getElementById('serverUrl').value.trim();
-            if (!newUrl) {
-                alert('서버 주소를 입력해주세요.');
-                return;
-            }
-            
-            SERVER_URL = newUrl.replace(/\/$/, '');
-            localStorage.setItem('serverUrl', SERVER_URL);
-            
-            const isOnline = await checkServerStatus();
-            if (isOnline) {
-                showSyncIndicator('서버 설정 저장됨');
-                loadMenus();
-            } else {
-                showSyncIndicator('서버 연결 실패', true);
             }
         }
 
@@ -756,6 +774,24 @@
                         desc: "실적 입력 및 관리",
                         url: "https://ajdsns.vercel.app/",
                         icon: "📊"
+                    },
+                    {
+                        title: "가망상담건 유치자변경 보고시스템",
+                        desc: "상요 > 가망 유치자공란 건",
+                        url: "https://sangyo-system.vercel.app/",
+                        icon: "🔄"
+                    },
+                    {
+                        title: "취소양식 관리 시스템",
+                        desc: "취소양식 생성 및 관리",
+                        url: "https://cancel-report.vercel.app/",
+                        icon: "📋"
+                    },
+                    {
+                        title: "SNS센터 채팅분석 프로그램",
+                        desc: "채널톡 채팅 심층분석",
+                        url: "https://chat-analyzer-ql7u.onrender.com/",
+                        icon: "📈"
                     }
                 ];
                 renderMenus(defaultMenus);
@@ -786,20 +822,69 @@
                     </div>
                     <div class="menu-arrow">→</div>
                     <div class="menu-actions">
-                        <button class="action-btn move-btn" onclick="moveUp(${index})" ${isFirst ? 'disabled' : ''}>⬆️</button>
-                        <button class="action-btn move-btn" onclick="moveDown(${index})" ${isLast ? 'disabled' : ''}>⬇️</button>
-                        <button class="action-btn edit-btn" onclick="editMenu(${index})">✏️</button>
-                        <button class="action-btn delete-btn" onclick="deleteMenu(${index})">🗑️</button>
+                        <button class="action-btn move-btn move-up-btn" data-index="${index}" ${isFirst ? 'disabled' : ''}>⬆️</button>
+                        <button class="action-btn move-btn move-down-btn" data-index="${index}" ${isLast ? 'disabled' : ''}>⬇️</button>
+                        <button class="action-btn edit-btn" data-index="${index}">✏️</button>
+                        <button class="action-btn delete-btn" data-index="${index}">🗑️</button>
                     </div>
                 `;
                 
                 if (editMode) {
                     newMenu.classList.add('edit-mode');
-                    newMenu.onclick = (e) => e.preventDefault();
+                    newMenu.onclick = (e) => {
+                        e.preventDefault();
+                        return false;
+                    };
                     setupDragAndDrop(newMenu);
                 }
                 
                 container.appendChild(newMenu);
+            });
+
+            // 버튼 이벤트 바인딩
+            bindButtonEvents();
+        }
+
+        // 버튼 이벤트 바인딩
+        function bindButtonEvents() {
+            // 위로 이동 버튼
+            document.querySelectorAll('.move-up-btn').forEach(btn => {
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    const index = parseInt(btn.getAttribute('data-index'));
+                    moveUp(index);
+                };
+            });
+
+            // 아래로 이동 버튼
+            document.querySelectorAll('.move-down-btn').forEach(btn => {
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    const index = parseInt(btn.getAttribute('data-index'));
+                    moveDown(index);
+                };
+            });
+
+            // 편집 버튼
+            document.querySelectorAll('.edit-btn').forEach(btn => {
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    const index = parseInt(btn.getAttribute('data-index'));
+                    editMenu(index);
+                };
+            });
+
+            // 삭제 버튼
+            document.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    const index = parseInt(btn.getAttribute('data-index'));
+                    deleteMenu(index);
+                };
             });
         }
 
@@ -906,23 +991,24 @@
             items.forEach((item, idx) => {
                 item.setAttribute('data-index', idx);
                 
-                const moveUpBtn = item.querySelector('.move-btn:nth-of-type(1)');
-                const moveDownBtn = item.querySelector('.move-btn:nth-of-type(2)');
+                const moveUpBtn = item.querySelector('.move-up-btn');
+                const moveDownBtn = item.querySelector('.move-down-btn');
                 const editBtn = item.querySelector('.edit-btn');
                 const deleteBtn = item.querySelector('.delete-btn');
                 
                 if (moveUpBtn) {
-                    moveUpBtn.setAttribute('onclick', `moveUp(${idx})`);
+                    moveUpBtn.setAttribute('data-index', idx);
                     moveUpBtn.disabled = idx === 0;
                 }
                 if (moveDownBtn) {
-                    moveDownBtn.setAttribute('onclick', `moveDown(${idx})`);
+                    moveDownBtn.setAttribute('data-index', idx);
                     moveDownBtn.disabled = idx === totalItems - 1;
                 }
-                if (editBtn) editBtn.setAttribute('onclick', `editMenu(${idx})`);
-                if (deleteBtn) deleteBtn.setAttribute('onclick', `deleteMenu(${idx})`);
+                if (editBtn) editBtn.setAttribute('data-index', idx);
+                if (deleteBtn) deleteBtn.setAttribute('data-index', idx);
             });
             
+            bindButtonEvents();
             saveMenus();
         }
 
@@ -949,16 +1035,13 @@
                     });
                     
                     if (response.ok) {
-                        showSyncIndicator('서버 동기화 완료');
+                        console.log('서버 동기화 완료');
                     } else {
                         throw new Error('서버 저장 실패');
                     }
                 } catch (error) {
                     console.error('서버 저장 오류:', error);
-                    showSyncIndicator('서버 저장 실패 (로컬 저장됨)', true);
                 }
-            } else {
-                showSyncIndicator('로컬 저장 완료');
             }
         }
 
@@ -991,56 +1074,23 @@
                     console.error('서버 추가 오류:', error);
                 }
             }
+
+            // 현재 메뉴 가져오기
+            const savedMenus = localStorage.getItem('customMenus');
+            const menus = savedMenus ? JSON.parse(savedMenus) : [];
+            menus.push(newMenu);
             
-            const menuCount = document.querySelectorAll('.menu-item').length;
-            const menuElement = document.createElement('a');
-            menuElement.href = url;
-            menuElement.className = 'menu-item';
-            menuElement.target = '_blank';
-            menuElement.setAttribute('data-index', menuCount);
-            menuElement.draggable = editMode;
-            
-            const isFirst = menuCount === 0;
-            
-            menuElement.innerHTML = `
-                <div class="menu-icon">${icon}</div>
-                <div class="menu-content">
-                    <div class="menu-title">${name}</div>
-                    <div class="menu-desc">${desc || ''}</div>
-                </div>
-                <div class="menu-arrow">→</div>
-                <div class="menu-actions">
-                    <button class="action-btn move-btn" onclick="moveUp(${menuCount})" ${isFirst ? 'disabled' : ''}>⬆️</button>
-                    <button class="action-btn move-btn" onclick="moveDown(${menuCount})" disabled>⬇️</button>
-                    <button class="action-btn edit-btn" onclick="editMenu(${menuCount})">✏️</button>
-                    <button class="action-btn delete-btn" onclick="deleteMenu(${menuCount})">🗑️</button>
-                </div>
-            `;
+            // 다시 렌더링
+            renderMenus(menus);
+            saveMenus();
 
-            if (editMode) {
-                menuElement.classList.add('edit-mode');
-                menuElement.onclick = (e) => e.preventDefault();
-                setupDragAndDrop(menuElement);
-            }
-
-            // 이전 마지막 아이템의 아래 버튼 활성화
-            const previousItems = document.querySelectorAll('.menu-item');
-            if (previousItems.length > 0) {
-                const lastItem = previousItems[previousItems.length - 1];
-                const lastDownBtn = lastItem.querySelector('.move-btn:nth-of-type(2)');
-                if (lastDownBtn) {
-                    lastDownBtn.disabled = false;
-                }
-            }
-
-            document.getElementById('menuContainer').appendChild(menuElement);
-
+            // 입력 필드 초기화
             document.getElementById('menuName').value = '';
             document.getElementById('menuDesc').value = '';
             document.getElementById('menuUrl').value = '';
             document.getElementById('menuIcon').value = '';
 
-            saveMenus();
+            showSyncIndicator('메뉴 추가됨');
         }
 
         // 메뉴 편집
@@ -1121,17 +1171,82 @@
             }
         }
 
-        // 나머지 기능들
+        // 편집 모드 토글
+        function toggleEditMode() {
+            editMode = !editMode;
+            const indicator = document.getElementById('editModeIndicator');
+            const menuItems = document.querySelectorAll('.menu-item');
+            const editBtn = document.getElementById('toggleEditBtn');
+
+            if (editMode) {
+                indicator.classList.add('active');
+                menuItems.forEach(item => {
+                    item.classList.add('edit-mode');
+                    item.draggable = true;
+                    item.onclick = (e) => {
+                        e.preventDefault();
+                        return false;
+                    };
+                    setupDragAndDrop(item);
+                });
+                editBtn.textContent = '편집 모드 종료';
+                editBtn.style.background = '#8b2635';
+            } else {
+                indicator.classList.remove('active');
+                menuItems.forEach(item => {
+                    item.classList.remove('edit-mode');
+                    item.draggable = false;
+                    item.onclick = null;
+                });
+                editBtn.textContent = '편집 모드 시작';
+                editBtn.style.background = '#1E6FFF';
+            }
+            bindButtonEvents();
+        }
+
+        // 서버 설정 저장
+        async function saveServerConfig() {
+            const newUrl = document.getElementById('serverUrl').value.trim();
+            if (!newUrl) {
+                alert('서버 주소를 입력해주세요.');
+                return;
+            }
+            
+            SERVER_URL = newUrl.replace(/\/$/, '');
+            localStorage.setItem('serverUrl', SERVER_URL);
+            
+            const isOnline = await checkServerStatus();
+            if (isOnline) {
+                showSyncIndicator('서버 설정 저장됨');
+                loadMenus();
+            } else {
+                showSyncIndicator('서버 연결 실패', true);
+            }
+        }
+
+        // 이벤트 리스너 설정
         document.getElementById('settingsBtn').addEventListener('click', function() {
-            document.getElementById('passwordModal').classList.add('active');
-            document.getElementById('passwordInput').focus();
+            if (isPasswordSaved()) {
+                // 비밀번호가 저장되어 있으면 바로 설정 패널 열기
+                document.getElementById('settingsPanel').classList.add('active');
+                checkServerStatus();
+            } else {
+                // 비밀번호 입력 모달 표시
+                document.getElementById('passwordModal').classList.add('active');
+                document.getElementById('passwordInput').focus();
+            }
         });
+
+        document.getElementById('passwordConfirmBtn').addEventListener('click', checkPassword);
+        document.getElementById('passwordCancelBtn').addEventListener('click', closePasswordModal);
 
         function checkPassword() {
             const input = document.getElementById('passwordInput').value;
             const errorMsg = document.getElementById('passwordError');
             
             if (input === PASSWORD) {
+                // 비밀번호 저장 (현재 시간 기록)
+                localStorage.setItem('passwordTime', new Date().getTime().toString());
                 closePasswordModal();
                 document.getElementById('settingsPanel').classList.add('active');
                 checkServerStatus();
@@ -1156,63 +1271,45 @@
             }
         });
 
-        function switchTab(tab) {
+        // 탭 전환
+        document.getElementById('addTabBtn').addEventListener('click', function() {
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
-
+            this.classList.add('active');
             document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            if (tab === 'add') {
-                document.getElementById('addTab').classList.add('active');
-            } else {
-                document.getElementById('editTab').classList.add('active');
-            }
-        }
+            document.getElementById('addTab').classList.add('active');
+        });
 
-        function toggleEditMode() {
-            editMode = !editMode;
-            const indicator = document.getElementById('editModeIndicator');
-            const menuItems = document.querySelectorAll('.menu-item');
-            const editBtn = event.target;
+        document.getElementById('editTabBtn').addEventListener('click', function() {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            this.classList.add('active');
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById('editTab').classList.add('active');
+        });
 
-            if (editMode) {
-                indicator.classList.add('active');
-                menuItems.forEach(item => {
-                    item.classList.add('edit-mode');
-                    item.draggable = true;
-                    item.onclick = (e) => {
-                        if (editMode) {
-                            e.preventDefault();
-                        }
-                    };
-                    setupDragAndDrop(item);
-                });
-                editBtn.textContent = '편집 모드 종료';
-                editBtn.style.background = '#8b2635';
-            } else {
-                indicator.classList.remove('active');
-                menuItems.forEach(item => {
-                    item.classList.remove('edit-mode');
-                    item.draggable = false;
-                    item.onclick = null;
-                    // 드래그 이벤트 리스너 제거
-                    item.removeEventListener('dragstart', handleDragStart);
-                    item.removeEventListener('dragenter', handleDragEnter);
-                    item.removeEventListener('dragover', handleDragOver);
-                    item.removeEventListener('dragleave', handleDragLeave);
-                    item.removeEventListener('drop', handleDrop);
-                    item.removeEventListener('dragend', handleDragEnd);
-                });
-                editBtn.textContent = '편집 모드 시작';
-                editBtn.style.background = '#1E6FFF';
-            }
-        }
-
-        function closeSettings() {
+        // 버튼 이벤트
+        document.getElementById('addMenuBtn').addEventListener('click', addMenu);
+        document.getElementById('toggleEditBtn').addEventListener('click', toggleEditMode);
+        document.getElementById('saveServerBtn').addEventListener('click', saveServerConfig);
+        document.getElementById('closeSettingsBtn').addEventListener('click', function() {
             document.getElementById('settingsPanel').classList.remove('active');
             if (editMode) {
                 toggleEditMode();
             }
-        }
+        });
+
+        // 비밀번호 초기화
+        document.getElementById('logoutBtn').addEventListener('click', function() {
+            localStorage.removeItem('passwordTime');
+            alert('비밀번호가 초기화되었습니다.');
+            document.getElementById('settingsPanel').classList.remove('active');
+            if (editMode) {
+                toggleEditMode();
+            }
+        });
+
+        // 편집 모달 버튼
+        document.getElementById('saveEditBtn').addEventListener('click', saveEditMenu);
+        document.getElementById('closeEditBtn').addEventListener('click', closeEditModal);
 
         // 초기화
         window.addEventListener('load', async function() {
