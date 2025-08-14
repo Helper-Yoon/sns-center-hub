@@ -788,7 +788,7 @@ const HTML_PAGE = `<!DOCTYPE html>
     </div>
 
     <script>
-        const PASSWORD = '3504';
+        const PASSWORD = '1250';
         let editMode = false;
         let currentEditIndex = null;
         let draggedElement = null;
