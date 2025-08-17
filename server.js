@@ -901,6 +901,13 @@ const HTML_PAGE = `<!DOCTYPE html>
                         isAdmin: false
                     },
                     {
+                        title: "SNS센터 렌탈견적 시스템 - 정수기 편",
+                        desc: "정수기 렌탈 상담 도우미",
+                        url: "https://sns-rental-system.vercel.app/",
+                        icon: "💧",
+                        isAdmin: false
+                    },
+                    {
                         title: "SNS센터 채팅분석 프로그램",
                         desc: "채널톡 채팅 심층분석",
                         url: "https://chat-analyzer-ql7u.onrender.com/",
@@ -1457,7 +1464,7 @@ const HTML_PAGE = `<!DOCTYPE html>
         // 초기화
         window.addEventListener('load', async function() {
             // 메뉴 버전 확인 및 업데이트
-            const MENU_VERSION = 'v3.1';
+            const MENU_VERSION = 'v3.2';
             const savedVersion = localStorage.getItem('menuVersion');
             
             if (savedVersion !== MENU_VERSION) {
@@ -1535,6 +1542,13 @@ async function initDataFile() {
                         isAdmin: false
                     },
                     {
+                        title: "SNS센터 렌탈견적 시스템 - 정수기 편",
+                        desc: "정수기 렌탈 상담 도우미",
+                        url: "https://sns-rental-system.vercel.app/",
+                        icon: "💧",
+                        isAdmin: false
+                    },
+                    {
                         title: "SNS센터 채팅분석 프로그램",
                         desc: "채널톡 채팅 심층분석",
                         url: "https://chat-analyzer-ql7u.onrender.com/",
@@ -1579,6 +1593,13 @@ app.get('/api/menus', async (req, res) => {
                 desc: "취소양식 생성 및 관리",
                 url: "https://cancel-report.vercel.app/",
                 icon: "📋",
+                isAdmin: false
+            },
+            {
+                title: "SNS센터 렌탈견적 시스템 - 정수기 편",
+                desc: "정수기 렌탈 상담 도우미",
+                url: "https://sns-rental-system.vercel.app/",
+                icon: "💧",
                 isAdmin: false
             },
             {
