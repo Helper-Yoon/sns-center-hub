@@ -1,0 +1,1490 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>SNS센터 업무 허브</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #000;
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1400px;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        .container.visible {
+            opacity: 1;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
+        .header h1 {
+            font-size: 48px;
+            font-weight: 200;
+            margin-bottom: 10px;
+        }
+
+        .header h1 span {
+            color: #1E6FFF;
+            font-weight: 400;
+        }
+
+        .date-display {
+            color: #999;
+            font-size: 15px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 5px;
+        }
+
+        .sub-info {
+            color: #1E6FFF;
+            font-size: 19px;
+            margin-top: 10px;
+        }
+
+        .admin-indicator {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            padding: 8px 16px;
+            background: #FFD700;
+            color: #000;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            display: none;
+            z-index: 1001;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .admin-indicator.active {
+            display: block;
+        }
+
+        .sync-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background: #111;
+            border: 1px solid #1E6FFF;
+            color: #1E6FFF;
+            font-size: 13px;
+            display: none;
+            animation: slideIn 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .sync-indicator.active {
+            display: block;
+        }
+
+        .sync-indicator.error {
+            border-color: #ff0000;
+            color: #ff0000;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+
+        @keyframes fadeInOut {
+            0% { opacity: 0; }
+            20% { opacity: 1; }
+            80% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        .edit-mode-indicator {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 15px;
+            background: #111;
+            border: 1px solid #1E6FFF;
+            color: #1E6FFF;
+            display: none;
+            animation: pulse 2s infinite;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-size: 14px;
+        }
+
+        .edit-mode-indicator.active {
+            display: block;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 2px;
+            background: #111;
+            padding: 2px;
+            margin-bottom: 50px;
+        }
+
+        .menu-item {
+            background: #000;
+            padding: 30px;
+            text-decoration: none;
+            transition: all 0.3s;
+            cursor: pointer;
+            position: relative;
+            border: 1px solid transparent;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .menu-item:hover {
+            background: #050505;
+            border-color: #1E6FFF;
+            transform: translateY(-2px);
+        }
+
+        .menu-item.admin-menu {
+            background: linear-gradient(135deg, #000 0%, #0a0a00 100%);
+        }
+
+        .menu-item.admin-menu:hover {
+            border-color: #FFD700;
+        }
+
+        .menu-item.dragging {
+            opacity: 0.5;
+            background: #1a1a1a;
+        }
+
+        .menu-item.drag-over {
+            background: #1a1a1a;
+            border-color: #1E6FFF;
+        }
+
+        .menu-item.edit-mode {
+            cursor: move;
+        }
+
+        .menu-icon {
+            width: 60px;
+            height: 60px;
+            background: #111;
+            border: 1px solid #444;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            font-size: 30px;
+        }
+
+        .menu-item:hover .menu-icon {
+            border-color: #1E6FFF;
+            background: #0a0a0a;
+        }
+
+        .menu-item.admin-menu .menu-icon {
+            border-color: #555500;
+        }
+
+        .menu-item.admin-menu:hover .menu-icon {
+            border-color: #FFD700;
+        }
+
+        .menu-title {
+            font-size: 17px;
+            font-weight: 300;
+            color: #ffffff;
+            margin-bottom: 8px;
+            letter-spacing: 0.5px;
+        }
+
+        .menu-desc {
+            font-size: 13px;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .admin-badge {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 4px 8px;
+            background: #FFD700;
+            color: #000;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .menu-actions {
+            display: none;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .menu-item.edit-mode .menu-actions {
+            display: flex;
+        }
+
+        .action-btn {
+            width: 35px;
+            height: 35px;
+            border: 1px solid #555;
+            background: transparent;
+            color: #999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 17px;
+        }
+
+        .action-btn:hover {
+            border-color: #1E6FFF;
+            color: #1E6FFF;
+        }
+
+        .action-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .delete-btn:hover {
+            border-color: #ff0000;
+            color: #ff0000;
+        }
+
+        .settings-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 50px;
+            height: 50px;
+            background: transparent;
+            border: 1px solid #555;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            font-size: 22px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .settings-btn:hover {
+            border-color: #1E6FFF;
+            color: #1E6FFF;
+            transform: scale(1.1);
+        }
+
+        /* 초기 페이지 비밀번호 모달 */
+        .initial-password-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .initial-password-modal.hidden {
+            display: none;
+        }
+
+        .initial-password-box {
+            text-align: center;
+        }
+
+        .initial-password-logo {
+            font-size: 48px;
+            font-weight: 200;
+            margin-bottom: 40px;
+        }
+
+        .initial-password-logo span {
+            color: #1E6FFF;
+            font-weight: 400;
+        }
+
+        .initial-password-input {
+            width: 300px;
+            padding: 15px;
+            background: transparent;
+            border: 1px solid #555;
+            color: white;
+            font-size: 19px;
+            text-align: center;
+            letter-spacing: 5px;
+            margin-bottom: 20px;
+        }
+
+        .initial-password-input:focus {
+            outline: none;
+            border-color: #1E6FFF;
+        }
+
+        .initial-password-btn {
+            padding: 12px 40px;
+            background: transparent;
+            color: #999;
+            border: 1px solid #555;
+            font-size: 15px;
+            font-weight: 500;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .initial-password-btn:hover {
+            color: #1E6FFF;
+            border-color: #1E6FFF;
+        }
+
+        .initial-password-error {
+            color: #ff0000;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        /* 관리자 비밀번호 모달 */
+        .password-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .password-modal.active {
+            display: flex;
+        }
+
+        .password-box {
+            background: #000;
+            border: 1px solid #444;
+            padding: 40px;
+            width: 350px;
+        }
+
+        .password-title {
+            color: #ffffff;
+            font-size: 17px;
+            margin-bottom: 30px;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: 300;
+        }
+
+        .password-input {
+            width: 100%;
+            padding: 15px;
+            background: transparent;
+            border: 1px solid #555;
+            color: white;
+            font-size: 17px;
+            text-align: center;
+            letter-spacing: 5px;
+        }
+
+        .password-input:focus {
+            outline: none;
+            border-color: #1E6FFF;
+        }
+
+        .password-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        .password-btn {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #555;
+            background: transparent;
+            color: #999;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .password-confirm {
+            color: #1E6FFF;
+            border-color: #1E6FFF;
+        }
+
+        .password-confirm:hover {
+            background: #1E6FFF;
+            color: #000;
+        }
+
+        .password-cancel:hover {
+            border-color: #999;
+            color: #ccc;
+        }
+
+        .password-error {
+            color: #ff0000;
+            font-size: 12px;
+            text-align: center;
+            margin-top: 15px;
+            display: none;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* 설정 패널 */
+        .settings-panel {
+            position: fixed;
+            bottom: 90px;
+            right: 30px;
+            background: #000;
+            border: 1px solid #444;
+            padding: 30px;
+            width: 350px;
+            display: none;
+            z-index: 1000;
+        }
+
+        .settings-panel.active {
+            display: block;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .settings-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 10px;
+            background: transparent;
+            border: 1px solid #555;
+            color: #999;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .tab-btn.active {
+            border-color: #1E6FFF;
+            color: #1E6FFF;
+        }
+
+        .tab-btn:hover {
+            border-color: #1E6FFF;
+            color: #1E6FFF;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .settings-title {
+            font-size: 15px;
+            font-weight: 300;
+            color: #ffffff;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .settings-item {
+            margin-bottom: 20px;
+        }
+
+        .settings-label {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .settings-input {
+            width: 100%;
+            padding: 10px;
+            background: transparent;
+            border: 1px solid #555;
+            font-size: 15px;
+            color: white;
+        }
+
+        .settings-input:focus {
+            outline: none;
+            border-color: #1E6FFF;
+        }
+
+        .settings-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .settings-checkbox input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .settings-checkbox label {
+            font-size: 13px;
+            color: #FFD700;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .settings-save {
+            width: 100%;
+            padding: 12px;
+            background: transparent;
+            color: #1E6FFF;
+            border: 1px solid #1E6FFF;
+            font-size: 13px;
+            cursor: pointer;
+            margin-top: 20px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.2s;
+        }
+
+        .settings-save:hover {
+            background: #1E6FFF;
+            color: #000;
+        }
+
+        .settings-close {
+            width: 100%;
+            padding: 12px;
+            background: transparent;
+            color: #999;
+            border: 1px solid #555;
+            font-size: 13px;
+            cursor: pointer;
+            margin-top: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.2s;
+        }
+
+        .settings-close:hover {
+            border-color: #999;
+            color: #ccc;
+        }
+
+        .logout-btn {
+            width: 100%;
+            padding: 12px;
+            background: transparent;
+            color: #ff0000;
+            border: 1px solid #ff0000;
+            font-size: 13px;
+            cursor: pointer;
+            margin-top: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.2s;
+        }
+
+        .logout-btn:hover {
+            background: #ff0000;
+            color: #000;
+        }
+
+        /* 편집 모달 */
+        .edit-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 3000;
+        }
+
+        .edit-modal.active {
+            display: flex;
+        }
+
+        .edit-box {
+            background: #000;
+            border: 1px solid #444;
+            padding: 40px;
+            width: 400px;
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 100px;
+            color: #999;
+            font-size: 15px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        @media (max-width: 768px) {
+            .menu-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .settings-btn {
+                width: 45px;
+                height: 45px;
+                bottom: 20px;
+                right: 20px;
+            }
+
+            .settings-panel {
+                width: calc(100% - 40px);
+                right: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 초기 페이지 비밀번호 -->
+    <div class="initial-password-modal" id="initialPasswordModal">
+        <div class="initial-password-box">
+            <div class="initial-password-logo">SNS센터 <span>업무 허브</span></div>
+            <input type="password" class="initial-password-input" id="initialPasswordInput" placeholder="비밀번호 입력" maxlength="4">
+            <div><button class="initial-password-btn" id="initialPasswordBtn">접속</button></div>
+            <div class="initial-password-error" id="initialPasswordError">비밀번호가 틀렸습니다</div>
+        </div>
+    </div>
+
+    <!-- 관리자 모드 표시 -->
+    <div class="admin-indicator" id="adminIndicator">👑 관리자 모드</div>
+    
+    <!-- 메인 컨테이너 -->
+    <div class="container" id="mainContainer">
+        <div class="header">
+            <h1>SNS센터 <span>업무 허브</span></h1>
+            <div class="date-display" id="dateDisplay"></div>
+            <div class="sub-info">업무 시스템 바로가기</div>
+        </div>
+        
+        <div class="edit-mode-indicator" id="editModeIndicator">📝 편집 모드 활성화</div>
+        
+        <div class="menu-grid" id="menuContainer">
+            <div class="loading">메뉴를 불러오는 중...</div>
+        </div>
+    </div>
+
+    <div class="sync-indicator" id="syncIndicator">저장됨</div>
+
+    <button class="settings-btn" id="settingsBtn">⚙️</button>
+
+    <!-- 관리자 비밀번호 모달 -->
+    <div class="password-modal" id="passwordModal">
+        <div class="password-box">
+            <div class="password-title">관리자 비밀번호</div>
+            <input type="password" class="password-input" id="passwordInput" placeholder="****" maxlength="4">
+            <div class="password-error" id="passwordError">비밀번호가 틀렸습니다</div>
+            <div class="password-buttons">
+                <button class="password-btn password-cancel" id="passwordCancelBtn">취소</button>
+                <button class="password-btn password-confirm" id="passwordConfirmBtn">확인</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 설정 패널 -->
+    <div class="settings-panel" id="settingsPanel">
+        <div class="settings-tabs">
+            <button class="tab-btn active" id="addTabBtn">메뉴 추가</button>
+            <button class="tab-btn" id="editTabBtn">메뉴 편집</button>
+        </div>
+
+        <!-- 메뉴 추가 탭 -->
+        <div class="tab-content active" id="addTab">
+            <div class="settings-title">새 메뉴 추가</div>
+            <div class="settings-item">
+                <div class="settings-label">메뉴 이름</div>
+                <input type="text" class="settings-input" id="menuName" placeholder="예: 보고서 작성">
+            </div>
+            <div class="settings-item">
+                <div class="settings-label">설명</div>
+                <input type="text" class="settings-input" id="menuDesc" placeholder="예: 월간 보고서">
+            </div>
+            <div class="settings-item">
+                <div class="settings-label">URL</div>
+                <input type="text" class="settings-input" id="menuUrl" placeholder="https://...">
+            </div>
+            <div class="settings-item">
+                <div class="settings-label">아이콘 (이모지)</div>
+                <input type="text" class="settings-input" id="menuIcon" placeholder="📝" maxlength="2">
+            </div>
+            <div class="settings-checkbox">
+                <input type="checkbox" id="isAdminMenu">
+                <label for="isAdminMenu">👑 관리자 전용</label>
+            </div>
+            <button class="settings-save" id="addMenuBtn">메뉴 추가</button>
+        </div>
+
+        <!-- 메뉴 편집 탭 -->
+        <div class="tab-content" id="editTab">
+            <div class="settings-title">메뉴 편집 모드</div>
+            <p style="color: #999; font-size: 12px; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px;">
+                드래그 앤 드롭으로 순서 변경<br>
+                편집 또는 삭제 버튼 클릭
+            </p>
+            <button class="settings-save" id="toggleEditBtn">편집 모드 시작</button>
+            
+            <button class="settings-close" id="closeSettingsBtn">설정 닫기</button>
+            <button class="logout-btn" id="logoutBtn">로그아웃</button>
+        </div>
+    </div>
+
+    <!-- 편집 모달 -->
+    <div class="edit-modal" id="editModal">
+        <div class="edit-box">
+            <div class="settings-title">메뉴 편집</div>
+            <div class="settings-item">
+                <div class="settings-label">메뉴 이름</div>
+                <input type="text" class="settings-input" id="editMenuName">
+            </div>
+            <div class="settings-item">
+                <div class="settings-label">설명</div>
+                <input type="text" class="settings-input" id="editMenuDesc">
+            </div>
+            <div class="settings-item">
+                <div class="settings-label">URL</div>
+                <input type="text" class="settings-input" id="editMenuUrl">
+            </div>
+            <div class="settings-item">
+                <div class="settings-label">아이콘 (이모지)</div>
+                <input type="text" class="settings-input" id="editMenuIcon" maxlength="2">
+            </div>
+            <div class="settings-checkbox">
+                <input type="checkbox" id="editIsAdminMenu">
+                <label for="editIsAdminMenu">👑 관리자 전용</label>
+            </div>
+            <button class="settings-save" id="saveEditBtn">저장</button>
+            <button class="settings-close" id="closeEditBtn">취소</button>
+        </div>
+    </div>
+
+    <script>
+        const MAIN_PASSWORD = '1004';  // 페이지 접속 비밀번호
+        const ADMIN_PASSWORD = '1250';  // 관리자 비밀번호
+        let editMode = false;
+        let currentEditIndex = null;
+        let draggedElement = null;
+        let isAdminMode = false;
+        let isAuthenticated = false;
+
+        // 기본 메뉴 데이터
+        const defaultMenus = [
+            {
+                title: "SNS센터 실적보고",
+                desc: "실적 입력 및 관리",
+                url: "https://ajdsns.vercel.app/",
+                icon: "📊",
+                isAdmin: false
+            },
+            {
+                title: "가망상담건 유치자변경",
+                desc: "상요 > 가망 유치자공란 건",
+                url: "https://sangyo-system.vercel.app/",
+                icon: "🔄",
+                isAdmin: false
+            },
+            {
+                title: "취소양식 관리",
+                desc: "취소양식 생성 및 관리",
+                url: "https://cancel-report.vercel.app/",
+                icon: "📋",
+                isAdmin: false
+            },
+            {
+                title: "렌탈견적 시스템",
+                desc: "정수기 렌탈 상담 도우미",
+                url: "https://sns-rental-system.vercel.app/",
+                icon: "💧",
+                isAdmin: false
+            },
+            {
+                title: "채팅분석 프로그램",
+                desc: "채널톡 채팅 심층분석",
+                url: "https://chat-analyzer-ql7u.onrender.com/",
+                icon: "📈",
+                isAdmin: true
+            }
+        ];
+
+        // 페이지 접속 인증 확인
+        function checkMainAuth() {
+            const savedTime = localStorage.getItem('mainAuthTime');
+            if (!savedTime) return false;
+            
+            const EXPIRE_TIME = 24 * 60 * 60 * 1000; // 24시간
+            const now = new Date().getTime();
+            if (now - parseInt(savedTime) > EXPIRE_TIME) {
+                localStorage.removeItem('mainAuthTime');
+                return false;
+            }
+            return true;
+        }
+
+        // 관리자 인증 확인
+        function checkAdminAuth() {
+            const savedTime = localStorage.getItem('adminAuthTime');
+            if (!savedTime) return false;
+            
+            const EXPIRE_TIME = 24 * 60 * 60 * 1000; // 24시간
+            const now = new Date().getTime();
+            if (now - parseInt(savedTime) > EXPIRE_TIME) {
+                localStorage.removeItem('adminAuthTime');
+                return false;
+            }
+            return true;
+        }
+
+        // 날짜 표시
+        function updateDateDisplay() {
+            const now = new Date();
+            const days = ['일', '월', '화', '수', '목', '금', '토'];
+            document.getElementById('dateDisplay').textContent = 
+                `${now.getFullYear()}년 ${now.getMonth()+1}월 ${now.getDate()}일 ${days[now.getDay()]}요일`;
+        }
+
+        // 페이지 초기화
+        window.addEventListener('load', function() {
+            updateDateDisplay();
+            
+            // 페이지 접속 인증 확인
+            if (checkMainAuth()) {
+                // 인증됨 - 메인 화면 표시
+                document.getElementById('initialPasswordModal').classList.add('hidden');
+                document.getElementById('mainContainer').classList.add('visible');
+                isAuthenticated = true;
+                
+                // 관리자 모드 확인
+                if (checkAdminAuth()) {
+                    isAdminMode = true;
+                    document.getElementById('adminIndicator').classList.add('active');
+                }
+                
+                loadMenus();
+            } else {
+                // 인증 안됨 - 비밀번호 입력
+                document.getElementById('initialPasswordInput').focus();
+            }
+        });
+
+        // 초기 비밀번호 입력
+        document.getElementById('initialPasswordBtn').addEventListener('click', checkInitialPassword);
+        document.getElementById('initialPasswordInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') checkInitialPassword();
+        });
+
+        function checkInitialPassword() {
+            const input = document.getElementById('initialPasswordInput').value;
+            const errorMsg = document.getElementById('initialPasswordError');
+            
+            if (input === MAIN_PASSWORD) {
+                localStorage.setItem('mainAuthTime', new Date().getTime().toString());
+                isAuthenticated = true;
+                
+                // 화면 전환
+                document.getElementById('initialPasswordModal').classList.add('hidden');
+                document.getElementById('mainContainer').classList.add('visible');
+                
+                // 메뉴 로드
+                loadMenus();
+            } else {
+                errorMsg.style.display = 'block';
+                document.getElementById('initialPasswordInput').value = '';
+                setTimeout(() => {
+                    errorMsg.style.display = 'none';
+                }, 2000);
+            }
+        }
+
+        // 동기화 표시
+        function showSyncIndicator(message, isError = false) {
+            const indicator = document.getElementById('syncIndicator');
+            indicator.textContent = message;
+            indicator.className = isError ? 'sync-indicator error active' : 'sync-indicator active';
+            setTimeout(() => {
+                indicator.classList.remove('active');
+            }, 2000);
+        }
+
+        // 메뉴 로드
+        function loadMenus() {
+            if (!isAuthenticated) return;
+            
+            const savedMenus = localStorage.getItem('customMenus');
+            let menus = savedMenus ? JSON.parse(savedMenus) : defaultMenus;
+            
+            // 관리자 모드가 아니면 일반 메뉴만 필터링
+            if (!isAdminMode) {
+                menus = menus.filter(menu => !menu.isAdmin);
+            }
+            
+            renderMenus(menus);
+        }
+
+        // 메뉴 렌더링
+        function renderMenus(menus) {
+            const container = document.getElementById('menuContainer');
+            
+            if (!menus || menus.length === 0) {
+                container.innerHTML = '<div class="loading">표시할 메뉴가 없습니다</div>';
+                return;
+            }
+            
+            container.innerHTML = '';
+            
+            menus.forEach((menu, index) => {
+                const newMenu = document.createElement('a');
+                newMenu.href = menu.url;
+                newMenu.className = menu.isAdmin ? 'menu-item admin-menu' : 'menu-item';
+                newMenu.target = '_blank';
+                newMenu.setAttribute('data-index', index);
+                newMenu.draggable = editMode;
+                
+                const isFirst = index === 0;
+                const isLast = index === menus.length - 1;
+                
+                newMenu.innerHTML = `
+                    <div class="menu-icon">${menu.icon}</div>
+                    <div class="menu-title">${menu.title}</div>
+                    <div class="menu-desc">${menu.desc}</div>
+                    ${menu.isAdmin ? '<span class="admin-badge">관리자</span>' : ''}
+                    <div class="menu-actions">
+                        <button class="action-btn move-btn move-up-btn" data-index="${index}" ${isFirst ? 'disabled' : ''}>⬆️</button>
+                        <button class="action-btn move-btn move-down-btn" data-index="${index}" ${isLast ? 'disabled' : ''}>⬇️</button>
+                        <button class="action-btn edit-btn" data-index="${index}">✏️</button>
+                        <button class="action-btn delete-btn" data-index="${index}">🗑️</button>
+                    </div>
+                `;
+                
+                if (editMode) {
+                    newMenu.classList.add('edit-mode');
+                    newMenu.onclick = (e) => {
+                        e.preventDefault();
+                        return false;
+                    };
+                    setupDragAndDrop(newMenu);
+                }
+                
+                container.appendChild(newMenu);
+            });
+
+            bindButtonEvents();
+        }
+
+        // 버튼 이벤트 바인딩
+        function bindButtonEvents() {
+            document.querySelectorAll('.move-up-btn').forEach(btn => {
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    const index = parseInt(btn.getAttribute('data-index'));
+                    moveUp(index);
+                };
+            });
+
+            document.querySelectorAll('.move-down-btn').forEach(btn => {
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    const index = parseInt(btn.getAttribute('data-index'));
+                    moveDown(index);
+                };
+            });
+
+            document.querySelectorAll('.edit-btn').forEach(btn => {
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    const index = parseInt(btn.getAttribute('data-index'));
+                    editMenu(index);
+                };
+            });
+
+            document.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    const index = parseInt(btn.getAttribute('data-index'));
+                    deleteMenu(index);
+                };
+            });
+        }
+
+        // 드래그 앤 드롭 설정
+        function setupDragAndDrop(element) {
+            element.addEventListener('dragstart', handleDragStart);
+            element.addEventListener('dragenter', handleDragEnter);
+            element.addEventListener('dragover', handleDragOver);
+            element.addEventListener('dragleave', handleDragLeave);
+            element.addEventListener('drop', handleDrop);
+            element.addEventListener('dragend', handleDragEnd);
+        }
+
+        function handleDragStart(e) {
+            draggedElement = this;
+            this.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/html', this.innerHTML);
+        }
+
+        function handleDragEnter(e) {
+            if (this !== draggedElement) {
+                this.classList.add('drag-over');
+            }
+        }
+
+        function handleDragOver(e) {
+            if (e.preventDefault) {
+                e.preventDefault();
+            }
+            e.dataTransfer.dropEffect = 'move';
+            return false;
+        }
+
+        function handleDragLeave(e) {
+            this.classList.remove('drag-over');
+        }
+
+        function handleDrop(e) {
+            if (e.stopPropagation) {
+                e.stopPropagation();
+            }
+            
+            if (draggedElement !== this) {
+                const container = document.getElementById('menuContainer');
+                const allItems = [...container.querySelectorAll('.menu-item')];
+                const draggedIndex = allItems.indexOf(draggedElement);
+                const targetIndex = allItems.indexOf(this);
+                
+                if (draggedIndex < targetIndex) {
+                    container.insertBefore(draggedElement, this.nextSibling);
+                } else {
+                    container.insertBefore(draggedElement, this);
+                }
+                
+                updateIndicesAndSave();
+            }
+            
+            return false;
+        }
+
+        function handleDragEnd(e) {
+            const items = document.querySelectorAll('.menu-item');
+            items.forEach(item => {
+                item.classList.remove('drag-over');
+                item.classList.remove('dragging');
+            });
+        }
+
+        // 위로 이동
+        function moveUp(index) {
+            if (index === 0) return;
+            
+            const container = document.getElementById('menuContainer');
+            const items = container.querySelectorAll('.menu-item');
+            const currentItem = items[index];
+            const previousItem = items[index - 1];
+            
+            container.insertBefore(currentItem, previousItem);
+            updateIndicesAndSave();
+            showSyncIndicator('순서 변경됨');
+        }
+
+        // 아래로 이동
+        function moveDown(index) {
+            const container = document.getElementById('menuContainer');
+            const items = container.querySelectorAll('.menu-item');
+            
+            if (index >= items.length - 1) return;
+            
+            const currentItem = items[index];
+            const nextItem = items[index + 1];
+            
+            container.insertBefore(nextItem, currentItem);
+            updateIndicesAndSave();
+            showSyncIndicator('순서 변경됨');
+        }
+
+        // 인덱스 업데이트 및 저장
+        function updateIndicesAndSave() {
+            const items = document.querySelectorAll('.menu-item');
+            const totalItems = items.length;
+            
+            items.forEach((item, idx) => {
+                item.setAttribute('data-index', idx);
+                
+                const moveUpBtn = item.querySelector('.move-up-btn');
+                const moveDownBtn = item.querySelector('.move-down-btn');
+                const editBtn = item.querySelector('.edit-btn');
+                const deleteBtn = item.querySelector('.delete-btn');
+                
+                if (moveUpBtn) {
+                    moveUpBtn.setAttribute('data-index', idx);
+                    moveUpBtn.disabled = idx === 0;
+                }
+                if (moveDownBtn) {
+                    moveDownBtn.setAttribute('data-index', idx);
+                    moveDownBtn.disabled = idx === totalItems - 1;
+                }
+                if (editBtn) editBtn.setAttribute('data-index', idx);
+                if (deleteBtn) deleteBtn.setAttribute('data-index', idx);
+            });
+            
+            bindButtonEvents();
+            saveMenus();
+        }
+
+        // 메뉴 저장
+        function saveMenus() {
+            const menus = [];
+            
+            const savedMenus = localStorage.getItem('customMenus');
+            let allMenus = savedMenus ? JSON.parse(savedMenus) : defaultMenus;
+            
+            document.querySelectorAll('.menu-item').forEach(item => {
+                const isAdmin = item.classList.contains('admin-menu');
+                const title = item.querySelector('.menu-title').textContent;
+                
+                menus.push({
+                    title: title,
+                    desc: item.querySelector('.menu-desc').textContent,
+                    url: item.href,
+                    icon: item.querySelector('.menu-icon').textContent,
+                    isAdmin: isAdmin
+                });
+            });
+            
+            if (!isAdminMode) {
+                const hiddenAdminMenus = allMenus.filter(menu => menu.isAdmin);
+                menus.push(...hiddenAdminMenus);
+            }
+            
+            localStorage.setItem('customMenus', JSON.stringify(menus));
+        }
+
+        // 메뉴 추가
+        function addMenu() {
+            const name = document.getElementById('menuName').value;
+            const desc = document.getElementById('menuDesc').value;
+            const url = document.getElementById('menuUrl').value;
+            const icon = document.getElementById('menuIcon').value || '📋';
+            const isAdmin = document.getElementById('isAdminMenu').checked;
+
+            if (!name || !url) {
+                alert('메뉴 이름과 URL은 필수입니다.');
+                return;
+            }
+
+            const newMenu = { title: name, desc: desc || '', url, icon, isAdmin };
+            
+            const savedMenus = localStorage.getItem('customMenus');
+            const menus = savedMenus ? JSON.parse(savedMenus) : defaultMenus;
+            menus.push(newMenu);
+            
+            localStorage.setItem('customMenus', JSON.stringify(menus));
+            loadMenus();
+
+            document.getElementById('menuName').value = '';
+            document.getElementById('menuDesc').value = '';
+            document.getElementById('menuUrl').value = '';
+            document.getElementById('menuIcon').value = '';
+            document.getElementById('isAdminMenu').checked = false;
+
+            showSyncIndicator('메뉴 추가됨');
+        }
+
+        // 메뉴 편집
+        function editMenu(index) {
+            const menuItem = document.querySelector(`.menu-item[data-index="${index}"]`);
+            currentEditIndex = index;
+
+            const savedMenus = localStorage.getItem('customMenus');
+            const allMenus = savedMenus ? JSON.parse(savedMenus) : defaultMenus;
+            
+            const menuTitle = menuItem.querySelector('.menu-title').textContent;
+            const menuData = allMenus.find(m => m.title === menuTitle);
+
+            document.getElementById('editMenuName').value = menuTitle;
+            document.getElementById('editMenuDesc').value = menuItem.querySelector('.menu-desc').textContent;
+            document.getElementById('editMenuUrl').value = menuItem.href;
+            document.getElementById('editMenuIcon').value = menuItem.querySelector('.menu-icon').textContent;
+            document.getElementById('editIsAdminMenu').checked = menuData ? menuData.isAdmin : false;
+
+            document.getElementById('editModal').classList.add('active');
+        }
+
+        // 편집 내용 저장
+        function saveEditMenu() {
+            const menuItem = document.querySelector(`.menu-item[data-index="${currentEditIndex}"]`);
+            const updatedMenu = {
+                title: document.getElementById('editMenuName').value,
+                desc: document.getElementById('editMenuDesc').value,
+                url: document.getElementById('editMenuUrl').value,
+                icon: document.getElementById('editMenuIcon').value,
+                isAdmin: document.getElementById('editIsAdminMenu').checked
+            };
+            
+            const savedMenus = localStorage.getItem('customMenus');
+            const allMenus = savedMenus ? JSON.parse(savedMenus) : defaultMenus;
+            
+            const oldTitle = menuItem.querySelector('.menu-title').textContent;
+            const menuIndex = allMenus.findIndex(m => m.title === oldTitle);
+            
+            if (menuIndex !== -1) {
+                allMenus[menuIndex] = updatedMenu;
+            }
+            
+            localStorage.setItem('customMenus', JSON.stringify(allMenus));
+
+            closeEditModal();
+            loadMenus();
+            showSyncIndicator('메뉴 수정됨');
+        }
+
+        // 편집 모달 닫기
+        function closeEditModal() {
+            document.getElementById('editModal').classList.remove('active');
+            currentEditIndex = null;
+        }
+
+        // 메뉴 삭제
+        function deleteMenu(index) {
+            if (confirm('정말로 이 메뉴를 삭제하시겠습니까?')) {
+                const menuItem = document.querySelector(`.menu-item[data-index="${index}"]`);
+                const menuTitle = menuItem.querySelector('.menu-title').textContent;
+                
+                const savedMenus = localStorage.getItem('customMenus');
+                let allMenus = savedMenus ? JSON.parse(savedMenus) : defaultMenus;
+                allMenus = allMenus.filter(m => m.title !== menuTitle);
+                localStorage.setItem('customMenus', JSON.stringify(allMenus));
+                
+                menuItem.remove();
+                updateIndicesAndSave();
+                showSyncIndicator('메뉴 삭제됨');
+            }
+        }
+
+        // 편집 모드 토글
+        function toggleEditMode() {
+            editMode = !editMode;
+            const indicator = document.getElementById('editModeIndicator');
+            const menuItems = document.querySelectorAll('.menu-item');
+            const editBtn = document.getElementById('toggleEditBtn');
+
+            if (editMode) {
+                indicator.classList.add('active');
+                menuItems.forEach(item => {
+                    item.classList.add('edit-mode');
+                    item.draggable = true;
+                    item.onclick = (e) => {
+                        e.preventDefault();
+                        return false;
+                    };
+                    setupDragAndDrop(item);
+                });
+                editBtn.textContent = '편집 모드 종료';
+                editBtn.style.borderColor = '#ff0000';
+                editBtn.style.color = '#ff0000';
+            } else {
+                indicator.classList.remove('active');
+                menuItems.forEach(item => {
+                    item.classList.remove('edit-mode');
+                    item.draggable = false;
+                    item.onclick = null;
+                });
+                editBtn.textContent = '편집 모드 시작';
+                editBtn.style.borderColor = '#1E6FFF';
+                editBtn.style.color = '#1E6FFF';
+            }
+            bindButtonEvents();
+        }
+
+        // 이벤트 리스너 설정
+        document.getElementById('settingsBtn').addEventListener('click', function() {
+            if (checkAdminAuth()) {
+                document.getElementById('settingsPanel').classList.add('active');
+                isAdminMode = true;
+                document.getElementById('adminIndicator').classList.add('active');
+                loadMenus();
+            } else {
+                document.getElementById('passwordModal').classList.add('active');
+                document.getElementById('passwordTitle').textContent = '관리자 비밀번호';
+                document.getElementById('passwordInput').focus();
+            }
+        });
+
+        document.getElementById('passwordConfirmBtn').addEventListener('click', checkAdminPassword);
+        document.getElementById('passwordCancelBtn').addEventListener('click', closePasswordModal);
+
+        function checkAdminPassword() {
+            const input = document.getElementById('passwordInput').value;
+            const errorMsg = document.getElementById('passwordError');
+            
+            if (input === ADMIN_PASSWORD) {
+                localStorage.setItem('adminAuthTime', new Date().getTime().toString());
+                isAdminMode = true;
+                closePasswordModal();
+                document.getElementById('settingsPanel').classList.add('active');
+                document.getElementById('adminIndicator').classList.add('active');
+                loadMenus();
+                showSyncIndicator('관리자 모드 활성화');
+            } else {
+                errorMsg.style.display = 'block';
+                document.getElementById('passwordInput').value = '';
+                setTimeout(() => {
+                    errorMsg.style.display = 'none';
+                }, 2000);
+            }
+        }
+
+        function closePasswordModal() {
+            document.getElementById('passwordModal').classList.remove('active');
+            document.getElementById('passwordInput').value = '';
+            document.getElementById('passwordError').style.display = 'none';
+        }
+
+        document.getElementById('passwordInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                checkAdminPassword();
+            }
+        });
+
+        // 탭 전환
+        document.getElementById('addTabBtn').addEventListener('click', function() {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            this.classList.add('active');
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById('addTab').classList.add('active');
+        });
+
+        document.getElementById('editTabBtn').addEventListener('click', function() {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            this.classList.add('active');
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById('editTab').classList.add('active');
+        });
+
+        // 버튼 이벤트
+        document.getElementById('addMenuBtn').addEventListener('click', addMenu);
+        document.getElementById('toggleEditBtn').addEventListener('click', toggleEditMode);
+        document.getElementById('closeSettingsBtn').addEventListener('click', function() {
+            document.getElementById('settingsPanel').classList.remove('active');
+            if (editMode) {
+                toggleEditMode();
+            }
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', function() {
+            localStorage.removeItem('adminAuthTime');
+            isAdminMode = false;
+            document.getElementById('adminIndicator').classList.remove('active');
+            alert('관리자 로그아웃되었습니다.');
+            document.getElementById('settingsPanel').classList.remove('active');
+            if (editMode) {
+                toggleEditMode();
+            }
+            loadMenus();
+        });
+
+        // 편집 모달 버튼
+        document.getElementById('saveEditBtn').addEventListener('click', saveEditMenu);
+        document.getElementById('closeEditBtn').addEventListener('click', closeEditModal);
+
+        // 클릭 외부 영역 클릭 시 설정 패널 닫기
+        document.addEventListener('click', function(e) {
+            const settingsBtn = document.getElementById('settingsBtn');
+            const settingsPanel = document.getElementById('settingsPanel');
+            const passwordModal = document.getElementById('passwordModal');
+            const editModal = document.getElementById('editModal');
+            
+            if (!settingsBtn.contains(e.target) && 
+                !settingsPanel.contains(e.target) && 
+                !passwordModal.contains(e.target) &&
+                !editModal.contains(e.target)) {
+                settingsPanel.classList.remove('active');
+            }
+        });
+    </script>
+</body>
+</html>
