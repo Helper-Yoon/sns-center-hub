@@ -13,7 +13,7 @@ app.use(express.json());
 // 데이터 파일 경로
 const DATA_FILE = path.join(__dirname, 'data', 'menus.json');
 
-// HTML 페이지 (관리자 모드 추가)
+// HTML 페이지 (모던 UI 적용)
 const HTML_PAGE = `<!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -22,7 +22,7 @@ const HTML_PAGE = `<!DOCTYPE html>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>SNS센터 업무 허브 v3.0</title>
+    <title>SNS센터 업무 허브</title>
     <style>
         * {
             margin: 0;
@@ -32,7 +32,8 @@ const HTML_PAGE = `<!DOCTYPE html>
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #0a0a0a;
+            background: #000;
+            color: #fff;
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -42,29 +43,59 @@ const HTML_PAGE = `<!DOCTYPE html>
 
         .container {
             width: 100%;
-            max-width: 600px;
+            max-width: 1400px;
+            opacity: 0;
+            transition: opacity 0.5s ease;
         }
 
-        .logo {
+        .container.visible {
+            opacity: 1;
+        }
+
+        .header {
             text-align: center;
-            margin-bottom: 30px;
-            font-size: 32px;
-            font-weight: bold;
-            color: #4A9EFF;
+            margin-bottom: 50px;
+        }
+
+        .header h1 {
+            font-size: 48px;
+            font-weight: 200;
+            margin-bottom: 10px;
+        }
+
+        .header h1 span {
+            color: #1E6FFF;
+            font-weight: 400;
+        }
+
+        .date-display {
+            color: #666;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 5px;
+        }
+
+        .sub-info {
+            color: #1E6FFF;
+            font-size: 18px;
+            margin-top: 10px;
         }
 
         .admin-indicator {
             position: fixed;
             top: 20px;
             left: 20px;
-            padding: 6px 12px;
+            padding: 8px 16px;
             background: #FFD700;
             color: #000;
-            border-radius: 20px;
+            border-radius: 4px;
             font-size: 11px;
             font-weight: bold;
             display: none;
             z-index: 1001;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         .admin-indicator.active {
@@ -75,13 +106,15 @@ const HTML_PAGE = `<!DOCTYPE html>
             position: fixed;
             top: 20px;
             right: 20px;
-            padding: 8px 16px;
-            background: #1E6FFF;
-            color: white;
-            border-radius: 20px;
+            padding: 10px 20px;
+            background: #111;
+            border: 1px solid #1E6FFF;
+            color: #1E6FFF;
             font-size: 12px;
             display: none;
-            animation: fadeInOut 2s;
+            animation: slideIn 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         .sync-indicator.active {
@@ -89,7 +122,13 @@ const HTML_PAGE = `<!DOCTYPE html>
         }
 
         .sync-indicator.error {
-            background: #ff4444;
+            border-color: #ff0000;
+            color: #ff0000;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
         }
 
         @keyframes fadeInOut {
@@ -101,13 +140,16 @@ const HTML_PAGE = `<!DOCTYPE html>
 
         .edit-mode-indicator {
             text-align: center;
-            margin-bottom: 20px;
-            padding: 10px;
-            background: #1E6FFF;
-            color: white;
-            border-radius: 8px;
+            margin-bottom: 30px;
+            padding: 15px;
+            background: #111;
+            border: 1px solid #1E6FFF;
+            color: #1E6FFF;
             display: none;
             animation: pulse 2s infinite;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-size: 13px;
         }
 
         .edit-mode-indicator.active {
@@ -116,178 +158,151 @@ const HTML_PAGE = `<!DOCTYPE html>
 
         @keyframes pulse {
             0%, 100% { opacity: 1; }
-            50% { opacity: 0.8; }
+            50% { opacity: 0.7; }
         }
 
-        .menu-container {
-            background: #1a1a1a;
-            border-radius: 12px;
-            box-shadow: 0 2px 20px rgba(0,0,0,0.5);
-            overflow: hidden;
-            min-height: 200px;
-        }
-
-        .loading {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 40px;
-            color: #8a8a8a;
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 2px;
+            background: #111;
+            padding: 2px;
+            margin-bottom: 50px;
         }
 
         .menu-item {
-            display: flex;
-            align-items: center;
-            padding: 20px 24px;
-            border-bottom: 1px solid #2a2a2a;
+            background: #000;
+            padding: 30px;
             text-decoration: none;
-            transition: all 0.2s;
+            transition: all 0.3s;
             cursor: pointer;
             position: relative;
+            border: 1px solid transparent;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .menu-item:hover {
+            background: #050505;
+            border-color: #1E6FFF;
+            transform: translateY(-2px);
         }
 
         .menu-item.admin-menu {
-            background: linear-gradient(90deg, #1a1a1a 0%, #1f1a00 100%);
+            background: linear-gradient(135deg, #000 0%, #0a0a00 100%);
+        }
+
+        .menu-item.admin-menu:hover {
+            border-color: #FFD700;
         }
 
         .menu-item.dragging {
             opacity: 0.5;
-            background: #2a5298;
+            background: #1a1a1a;
         }
 
         .menu-item.drag-over {
-            background: #2a5298;
-            border-top: 2px solid #4A9EFF;
-        }
-
-        .menu-item:last-child {
-            border-bottom: none;
-        }
-
-        .menu-item:hover {
-            background: #252525;
-            padding-left: 28px;
-        }
-
-        .menu-item.admin-menu:hover {
-            background: #2a2500;
+            background: #1a1a1a;
+            border-color: #1E6FFF;
         }
 
         .menu-item.edit-mode {
             cursor: move;
         }
 
-        .menu-item.edit-mode:hover {
-            padding-left: 24px;
-        }
-
         .menu-icon {
-            width: 40px;
-            height: 40px;
-            background: #1E6FFF;
-            border-radius: 8px;
+            width: 60px;
+            height: 60px;
+            background: #111;
+            border: 1px solid #222;
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-right: 16px;
-            color: white;
-            font-size: 18px;
+            margin-bottom: 20px;
+            font-size: 28px;
+        }
+
+        .menu-item:hover .menu-icon {
+            border-color: #1E6FFF;
+            background: #0a0a0a;
         }
 
         .menu-item.admin-menu .menu-icon {
-            background: #FFD700;
-            color: #000;
+            border-color: #333300;
         }
 
-        .menu-content {
-            flex: 1;
+        .menu-item.admin-menu:hover .menu-icon {
+            border-color: #FFD700;
         }
 
         .menu-title {
             font-size: 16px;
-            font-weight: 500;
+            font-weight: 300;
             color: #ffffff;
-            margin-bottom: 4px;
+            margin-bottom: 8px;
+            letter-spacing: 0.5px;
         }
 
         .menu-desc {
-            font-size: 13px;
-            color: #8a8a8a;
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         .admin-badge {
             display: inline-block;
-            margin-left: 8px;
-            padding: 2px 6px;
+            margin-top: 10px;
+            padding: 4px 8px;
             background: #FFD700;
             color: #000;
             border-radius: 4px;
             font-size: 10px;
             font-weight: bold;
-        }
-
-        .menu-arrow {
-            color: #4A9EFF;
-            font-size: 20px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         .menu-actions {
             display: none;
-            gap: 6px;
-            align-items: center;
+            gap: 10px;
+            margin-top: 20px;
         }
 
         .menu-item.edit-mode .menu-actions {
             display: flex;
         }
 
-        .menu-item.edit-mode .menu-arrow {
-            display: none;
-        }
-
         .action-btn {
-            width: 30px;
-            height: 30px;
-            border-radius: 6px;
-            border: none;
+            width: 35px;
+            height: 35px;
+            border: 1px solid #333;
+            background: transparent;
+            color: #666;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
             transition: all 0.2s;
-            font-size: 14px;
+            font-size: 16px;
         }
 
-        .move-btn {
-            background: #2a2a2a;
-            color: white;
+        .action-btn:hover {
+            border-color: #1E6FFF;
+            color: #1E6FFF;
         }
 
-        .move-btn:hover:not(:disabled) {
-            background: #3a3a3a;
-        }
-
-        .move-btn:disabled {
+        .action-btn:disabled {
             opacity: 0.3;
             cursor: not-allowed;
         }
 
-        .edit-btn {
-            background: #2a5298;
-            color: white;
-        }
-
-        .edit-btn:hover {
-            background: #3a62a8;
-        }
-
-        .delete-btn {
-            background: #8b2635;
-            color: white;
-        }
-
         .delete-btn:hover {
-            background: #9b3645;
+            border-color: #ff0000;
+            color: #ff0000;
         }
 
         .settings-btn {
@@ -296,31 +311,108 @@ const HTML_PAGE = `<!DOCTYPE html>
             right: 30px;
             width: 50px;
             height: 50px;
-            background: #1E6FFF;
-            border-radius: 50%;
+            background: transparent;
+            border: 1px solid #333;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: white;
+            color: #666;
             font-size: 20px;
             cursor: pointer;
-            box-shadow: 0 4px 12px rgba(30,111,255,0.3);
             transition: all 0.3s;
-            border: none;
         }
 
         .settings-btn:hover {
+            border-color: #1E6FFF;
+            color: #1E6FFF;
             transform: scale(1.1);
-            box-shadow: 0 6px 20px rgba(30,111,255,0.4);
         }
 
+        /* 초기 페이지 비밀번호 모달 */
+        .initial-password-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .initial-password-modal.hidden {
+            display: none;
+        }
+
+        .initial-password-box {
+            text-align: center;
+        }
+
+        .initial-password-logo {
+            font-size: 48px;
+            font-weight: 200;
+            margin-bottom: 40px;
+        }
+
+        .initial-password-logo span {
+            color: #1E6FFF;
+            font-weight: 400;
+        }
+
+        .initial-password-input {
+            width: 300px;
+            padding: 15px;
+            background: transparent;
+            border: 1px solid #333;
+            color: white;
+            font-size: 18px;
+            text-align: center;
+            letter-spacing: 5px;
+            margin-bottom: 20px;
+        }
+
+        .initial-password-input:focus {
+            outline: none;
+            border-color: #1E6FFF;
+        }
+
+        .initial-password-btn {
+            padding: 12px 40px;
+            background: transparent;
+            color: #666;
+            border: 1px solid #333;
+            font-size: 14px;
+            font-weight: 500;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .initial-password-btn:hover {
+            color: #1E6FFF;
+            border-color: #1E6FFF;
+        }
+
+        .initial-password-error {
+            color: #ff0000;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        /* 관리자 비밀번호 모달 */
         .password-modal {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.8);
+            background: rgba(0,0,0,0.9);
             display: none;
             align-items: center;
             justify-content: center;
@@ -332,26 +424,27 @@ const HTML_PAGE = `<!DOCTYPE html>
         }
 
         .password-box {
-            background: #1a1a1a;
-            border-radius: 12px;
-            padding: 30px;
-            width: 300px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            background: #000;
+            border: 1px solid #222;
+            padding: 40px;
+            width: 350px;
         }
 
         .password-title {
             color: #ffffff;
-            font-size: 18px;
-            margin-bottom: 20px;
+            font-size: 16px;
+            margin-bottom: 30px;
             text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: 300;
         }
 
         .password-input {
             width: 100%;
-            padding: 12px;
-            background: #0a0a0a;
-            border: 1px solid #2a2a2a;
-            border-radius: 6px;
+            padding: 15px;
+            background: transparent;
+            border: 1px solid #333;
             color: white;
             font-size: 16px;
             text-align: center;
@@ -366,54 +459,56 @@ const HTML_PAGE = `<!DOCTYPE html>
         .password-buttons {
             display: flex;
             gap: 10px;
-            margin-top: 20px;
+            margin-top: 30px;
         }
 
         .password-btn {
             flex: 1;
-            padding: 10px;
-            border: none;
-            border-radius: 6px;
-            font-size: 14px;
+            padding: 12px;
+            border: 1px solid #333;
+            background: transparent;
+            color: #666;
+            font-size: 12px;
             cursor: pointer;
             transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         .password-confirm {
-            background: #1E6FFF;
-            color: white;
+            color: #1E6FFF;
+            border-color: #1E6FFF;
         }
 
         .password-confirm:hover {
-            background: #1859d6;
-        }
-
-        .password-cancel {
-            background: #2a2a2a;
-            color: #8a8a8a;
+            background: #1E6FFF;
+            color: #000;
         }
 
         .password-cancel:hover {
-            background: #333333;
+            border-color: #666;
+            color: #999;
         }
 
         .password-error {
-            color: #ff4444;
-            font-size: 12px;
+            color: #ff0000;
+            font-size: 11px;
             text-align: center;
-            margin-top: 10px;
+            margin-top: 15px;
             display: none;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
+        /* 설정 패널 */
         .settings-panel {
             position: fixed;
             bottom: 90px;
             right: 30px;
-            background: #1a1a1a;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-            padding: 20px;
-            width: 280px;
+            background: #000;
+            border: 1px solid #222;
+            padding: 30px;
+            width: 350px;
             display: none;
             z-index: 1000;
         }
@@ -436,26 +531,31 @@ const HTML_PAGE = `<!DOCTYPE html>
 
         .settings-tabs {
             display: flex;
-            gap: 8px;
-            margin-bottom: 20px;
+            gap: 10px;
+            margin-bottom: 30px;
         }
 
         .tab-btn {
             flex: 1;
-            padding: 8px;
-            background: #0a0a0a;
-            border: 1px solid #2a2a2a;
-            border-radius: 6px;
-            color: #8a8a8a;
-            font-size: 13px;
+            padding: 10px;
+            background: transparent;
+            border: 1px solid #333;
+            color: #666;
+            font-size: 12px;
             cursor: pointer;
             transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         .tab-btn.active {
-            background: #1E6FFF;
-            color: white;
             border-color: #1E6FFF;
+            color: #1E6FFF;
+        }
+
+        .tab-btn:hover {
+            border-color: #1E6FFF;
+            color: #1E6FFF;
         }
 
         .tab-content {
@@ -468,28 +568,31 @@ const HTML_PAGE = `<!DOCTYPE html>
 
         .settings-title {
             font-size: 14px;
-            font-weight: 600;
+            font-weight: 300;
             color: #ffffff;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
         }
 
         .settings-item {
-            margin-bottom: 12px;
+            margin-bottom: 20px;
         }
 
         .settings-label {
-            font-size: 12px;
-            color: #8a8a8a;
-            margin-bottom: 4px;
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         .settings-input {
             width: 100%;
-            padding: 8px;
-            background: #0a0a0a;
-            border: 1px solid #2a2a2a;
-            border-radius: 6px;
-            font-size: 12px;
+            padding: 10px;
+            background: transparent;
+            border: 1px solid #333;
+            font-size: 14px;
             color: white;
         }
 
@@ -501,13 +604,13 @@ const HTML_PAGE = `<!DOCTYPE html>
         .settings-checkbox {
             display: flex;
             align-items: center;
-            gap: 8px;
-            margin-top: 8px;
+            gap: 10px;
+            margin-top: 10px;
         }
 
         .settings-checkbox input[type="checkbox"] {
-            width: 16px;
-            height: 16px;
+            width: 18px;
+            height: 18px;
             cursor: pointer;
         }
 
@@ -515,119 +618,103 @@ const HTML_PAGE = `<!DOCTYPE html>
             font-size: 12px;
             color: #FFD700;
             cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         .settings-save {
             width: 100%;
-            padding: 10px;
-            background: #1E6FFF;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-size: 13px;
+            padding: 12px;
+            background: transparent;
+            color: #1E6FFF;
+            border: 1px solid #1E6FFF;
+            font-size: 12px;
             cursor: pointer;
-            margin-top: 10px;
+            margin-top: 20px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.2s;
         }
 
         .settings-save:hover {
-            background: #1859d6;
+            background: #1E6FFF;
+            color: #000;
         }
 
         .settings-close {
             width: 100%;
-            padding: 10px;
-            background: #2a2a2a;
-            color: #8a8a8a;
-            border: none;
-            border-radius: 6px;
-            font-size: 13px;
+            padding: 12px;
+            background: transparent;
+            color: #666;
+            border: 1px solid #333;
+            font-size: 12px;
             cursor: pointer;
-            margin-top: 8px;
+            margin-top: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.2s;
         }
 
         .settings-close:hover {
-            background: #333333;
-            color: white;
+            border-color: #666;
+            color: #999;
         }
 
         .logout-btn {
             width: 100%;
-            padding: 10px;
-            background: #8b2635;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-size: 13px;
+            padding: 12px;
+            background: transparent;
+            color: #ff0000;
+            border: 1px solid #ff0000;
+            font-size: 12px;
             cursor: pointer;
-            margin-top: 8px;
+            margin-top: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.2s;
         }
 
         .logout-btn:hover {
-            background: #9b3645;
-        }
-
-        .admin-login-btn {
-            width: 100%;
-            padding: 10px;
-            background: #FFD700;
+            background: #ff0000;
             color: #000;
-            border: none;
-            border-radius: 6px;
-            font-size: 13px;
-            font-weight: bold;
-            cursor: pointer;
-            margin-top: 8px;
-        }
-
-        .admin-login-btn:hover {
-            background: #FFC700;
-        }
-
-        .admin-login-btn.logout {
-            background: #8b2635;
-            color: white;
-        }
-
-        .admin-login-btn.logout:hover {
-            background: #9b3645;
-        }
-
-        .server-config {
-            margin-top: 15px;
-            padding-top: 15px;
-            border-top: 1px solid #2a2a2a;
         }
 
         .server-status {
             display: flex;
             align-items: center;
-            gap: 8px;
-            margin-bottom: 10px;
+            gap: 10px;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #222;
         }
 
         .status-dot {
             width: 8px;
             height: 8px;
             border-radius: 50%;
-            background: #ff4444;
+            background: #ff0000;
+            animation: pulse 2s infinite;
         }
 
         .status-dot.online {
-            background: #44ff44;
+            background: #00ff00;
         }
 
         .status-text {
             font-size: 11px;
-            color: #8a8a8a;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
+        /* 편집 모달 */
         .edit-modal {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.8);
+            background: rgba(0,0,0,0.9);
             display: none;
             align-items: center;
             justify-content: center;
@@ -639,26 +726,26 @@ const HTML_PAGE = `<!DOCTYPE html>
         }
 
         .edit-box {
-            background: #1a1a1a;
-            border-radius: 12px;
-            padding: 30px;
-            width: 350px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            background: #000;
+            border: 1px solid #222;
+            padding: 40px;
+            width: 400px;
         }
 
-        @media (max-width: 480px) {
-            .menu-item {
-                padding: 16px 20px;
-            }
-            
-            .menu-item.edit-mode {
-                padding: 16px 12px;
-            }
-            
-            .action-btn {
-                width: 28px;
-                height: 28px;
-                font-size: 12px;
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 100px;
+            color: #666;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        @media (max-width: 768px) {
+            .menu-grid {
+                grid-template-columns: 1fr;
             }
             
             .settings-btn {
@@ -676,13 +763,30 @@ const HTML_PAGE = `<!DOCTYPE html>
     </style>
 </head>
 <body>
+    <!-- 초기 페이지 비밀번호 -->
+    <div class="initial-password-modal" id="initialPasswordModal">
+        <div class="initial-password-box">
+            <div class="initial-password-logo">SNS센터 <span>업무 허브</span></div>
+            <input type="password" class="initial-password-input" id="initialPasswordInput" placeholder="비밀번호 입력" maxlength="4">
+            <div><button class="initial-password-btn" id="initialPasswordBtn">접속</button></div>
+            <div class="initial-password-error" id="initialPasswordError">비밀번호가 틀렸습니다</div>
+        </div>
+    </div>
+
+    <!-- 관리자 모드 표시 -->
     <div class="admin-indicator" id="adminIndicator">👑 관리자 모드</div>
     
-    <div class="container">
-        <div class="logo">SNS센터 업무 허브</div>
-        <div class="edit-mode-indicator" id="editModeIndicator">📝 편집 모드 (드래그로 순서 변경 가능)</div>
+    <!-- 메인 컨테이너 -->
+    <div class="container" id="mainContainer">
+        <div class="header">
+            <h1>SNS센터 <span>업무 허브</span></h1>
+            <div class="date-display" id="dateDisplay"></div>
+            <div class="sub-info">업무 시스템 바로가기</div>
+        </div>
         
-        <div class="menu-container" id="menuContainer">
+        <div class="edit-mode-indicator" id="editModeIndicator">📝 편집 모드 활성화</div>
+        
+        <div class="menu-grid" id="menuContainer">
             <div class="loading">메뉴를 불러오는 중...</div>
         </div>
     </div>
@@ -691,10 +795,10 @@ const HTML_PAGE = `<!DOCTYPE html>
 
     <button class="settings-btn" id="settingsBtn">⚙️</button>
 
-    <!-- 비밀번호 모달 -->
+    <!-- 관리자 비밀번호 모달 -->
     <div class="password-modal" id="passwordModal">
         <div class="password-box">
-            <div class="password-title" id="passwordTitle">비밀번호 입력</div>
+            <div class="password-title">관리자 비밀번호</div>
             <input type="password" class="password-input" id="passwordInput" placeholder="****" maxlength="4">
             <div class="password-error" id="passwordError">비밀번호가 틀렸습니다</div>
             <div class="password-buttons">
@@ -732,7 +836,7 @@ const HTML_PAGE = `<!DOCTYPE html>
             </div>
             <div class="settings-checkbox">
                 <input type="checkbox" id="isAdminMenu">
-                <label for="isAdminMenu">👑 관리자 전용 메뉴</label>
+                <label for="isAdminMenu">👑 관리자 전용</label>
             </div>
             <button class="settings-save" id="addMenuBtn">메뉴 추가</button>
         </div>
@@ -740,17 +844,15 @@ const HTML_PAGE = `<!DOCTYPE html>
         <!-- 메뉴 편집 탭 -->
         <div class="tab-content" id="editTab">
             <div class="settings-title">메뉴 편집 모드</div>
-            <p style="color: #8a8a8a; font-size: 12px; margin-bottom: 15px;">
-                드래그 앤 드롭 또는 화살표 버튼으로 순서 변경<br>
-                편집(✏️) 또는 삭제(🗑️) 버튼 클릭
+            <p style="color: #666; font-size: 11px; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px;">
+                드래그 앤 드롭으로 순서 변경<br>
+                편집 또는 삭제 버튼 클릭
             </p>
             <button class="settings-save" id="toggleEditBtn">편집 모드 시작</button>
             
-            <div class="server-config">
-                <div class="server-status">
-                    <div class="status-dot online" id="serverStatus"></div>
-                    <span class="status-text" id="serverStatusText">서버 연결됨</span>
-                </div>
+            <div class="server-status">
+                <div class="status-dot online" id="serverStatus"></div>
+                <span class="status-text" id="serverStatusText">서버 연결됨</span>
             </div>
             
             <button class="settings-close" id="closeSettingsBtn">설정 닫기</button>
@@ -780,7 +882,7 @@ const HTML_PAGE = `<!DOCTYPE html>
             </div>
             <div class="settings-checkbox">
                 <input type="checkbox" id="editIsAdminMenu">
-                <label for="editIsAdminMenu">👑 관리자 전용 메뉴</label>
+                <label for="editIsAdminMenu">👑 관리자 전용</label>
             </div>
             <button class="settings-save" id="saveEditBtn">저장</button>
             <button class="settings-close" id="closeEditBtn">취소</button>
@@ -788,14 +890,104 @@ const HTML_PAGE = `<!DOCTYPE html>
     </div>
 
     <script>
-        const PASSWORD = '1250';
+        const MAIN_PASSWORD = '1004';  // 페이지 접속 비밀번호
+        const ADMIN_PASSWORD = '1250';  // 관리자 비밀번호
         let editMode = false;
         let currentEditIndex = null;
         let draggedElement = null;
-        let serverOnline = true;
         let isAdminMode = false;
+        let isAuthenticated = false;
 
-        // 관리자 모드 UI 업데이트
+        // 페이지 접속 인증 확인
+        function checkMainAuth() {
+            const savedTime = localStorage.getItem('mainAuthTime');
+            if (!savedTime) return false;
+            
+            const EXPIRE_TIME = 24 * 60 * 60 * 1000; // 24시간
+            const now = new Date().getTime();
+            if (now - parseInt(savedTime) > EXPIRE_TIME) {
+                localStorage.removeItem('mainAuthTime');
+                return false;
+            }
+            return true;
+        }
+
+        // 관리자 인증 확인
+        function checkAdminAuth() {
+            const savedTime = localStorage.getItem('adminAuthTime');
+            if (!savedTime) return false;
+            
+            const EXPIRE_TIME = 24 * 60 * 60 * 1000; // 24시간
+            const now = new Date().getTime();
+            if (now - parseInt(savedTime) > EXPIRE_TIME) {
+                localStorage.removeItem('adminAuthTime');
+                return false;
+            }
+            return true;
+        }
+
+        // 날짜 표시
+        function updateDateDisplay() {
+            const now = new Date();
+            const days = ['일', '월', '화', '수', '목', '금', '토'];
+            document.getElementById('dateDisplay').textContent = 
+                \`\${now.getFullYear()}년 \${now.getMonth()+1}월 \${now.getDate()}일 \${days[now.getDay()]}요일\`;
+        }
+
+        // 페이지 초기화
+        window.addEventListener('load', function() {
+            updateDateDisplay();
+            
+            // 페이지 접속 인증 확인
+            if (checkMainAuth()) {
+                // 인증됨 - 메인 화면 표시
+                document.getElementById('initialPasswordModal').classList.add('hidden');
+                document.getElementById('mainContainer').classList.add('visible');
+                isAuthenticated = true;
+                
+                // 관리자 모드 확인
+                if (checkAdminAuth()) {
+                    isAdminMode = true;
+                    document.getElementById('adminIndicator').classList.add('active');
+                }
+                
+                loadMenus();
+            } else {
+                // 인증 안됨 - 비밀번호 입력
+                document.getElementById('initialPasswordInput').focus();
+            }
+        });
+
+        // 초기 비밀번호 입력
+        document.getElementById('initialPasswordBtn').addEventListener('click', checkInitialPassword);
+        document.getElementById('initialPasswordInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') checkInitialPassword();
+        });
+
+        function checkInitialPassword() {
+            const input = document.getElementById('initialPasswordInput').value;
+            const errorMsg = document.getElementById('initialPasswordError');
+            
+            if (input === MAIN_PASSWORD) {
+                localStorage.setItem('mainAuthTime', new Date().getTime().toString());
+                isAuthenticated = true;
+                
+                // 화면 전환
+                document.getElementById('initialPasswordModal').classList.add('hidden');
+                document.getElementById('mainContainer').classList.add('visible');
+                
+                // 메뉴 로드
+                loadMenus();
+            } else {
+                errorMsg.style.display = 'block';
+                document.getElementById('initialPasswordInput').value = '';
+                setTimeout(() => {
+                    errorMsg.style.display = 'none';
+                }, 2000);
+            }
+        }
+
+        // 관리자 UI 업데이트
         function updateAdminUI() {
             const indicator = document.getElementById('adminIndicator');
             
@@ -806,24 +998,6 @@ const HTML_PAGE = `<!DOCTYPE html>
             }
             
             loadMenus();
-        }
-
-        // 비밀번호 확인 - 로컬스토리지 체크
-        function isPasswordSaved() {
-            const savedTime = localStorage.getItem('passwordTime');
-            if (!savedTime) return false;
-            
-            const EXPIRE_TIME = 24 * 60 * 60 * 1000;
-            const now = new Date().getTime();
-            if (now - parseInt(savedTime) > EXPIRE_TIME) {
-                localStorage.removeItem('passwordTime');
-                localStorage.removeItem('adminTime');
-                return false;
-            }
-            
-            // 비밀번호가 저장되어 있으면 관리자 모드도 자동 활성화
-            isAdminMode = true;
-            return true;
         }
 
         // 동기화 표시
@@ -838,16 +1012,15 @@ const HTML_PAGE = `<!DOCTYPE html>
 
         // 메뉴 로드
         async function loadMenus() {
+            if (!isAuthenticated) return;
+            
             const container = document.getElementById('menuContainer');
             
             try {
-                console.log('메뉴 로드 시작...');
                 const response = await fetch('/api/menus');
-                console.log('API 응답:', response);
                 
                 if (response.ok) {
                     let menus = await response.json();
-                    console.log('서버에서 받은 메뉴:', menus);
                     
                     // 관리자 모드가 아니면 일반 메뉴만 필터링
                     if (!isAdminMode) {
@@ -857,27 +1030,23 @@ const HTML_PAGE = `<!DOCTYPE html>
                     renderMenus(menus);
                     localStorage.setItem('customMenus', JSON.stringify(menus));
                     return;
-                } else {
-                    console.error('서버 응답 오류:', response.status);
                 }
             } catch (error) {
                 console.error('서버 로드 실패:', error);
             }
             
-            console.log('로컬 스토리지에서 메뉴 로드 시도...');
+            // 로컬 스토리지에서 로드
             const savedMenus = localStorage.getItem('customMenus');
             if (savedMenus) {
                 let menus = JSON.parse(savedMenus);
-                console.log('로컬 스토리지 메뉴:', menus);
                 
-                // 관리자 모드가 아니면 일반 메뉴만 필터링
                 if (!isAdminMode) {
                     menus = menus.filter(menu => !menu.isAdmin);
                 }
                 
                 renderMenus(menus);
             } else {
-                console.log('기본 메뉴 표시...');
+                // 기본 메뉴
                 const defaultMenus = [
                     {
                         title: "SNS센터 실적보고",
@@ -887,28 +1056,28 @@ const HTML_PAGE = `<!DOCTYPE html>
                         isAdmin: false
                     },
                     {
-                        title: "가망상담건 유치자변경 보고시스템",
+                        title: "가망상담건 유치자변경",
                         desc: "상요 > 가망 유치자공란 건",
                         url: "https://sangyo-system.vercel.app/",
                         icon: "🔄",
                         isAdmin: false
                     },
                     {
-                        title: "취소양식 관리 시스템",
+                        title: "취소양식 관리",
                         desc: "취소양식 생성 및 관리",
                         url: "https://cancel-report.vercel.app/",
                         icon: "📋",
                         isAdmin: false
                     },
                     {
-                        title: "SNS센터 렌탈견적 시스템 - 정수기 편",
+                        title: "렌탈견적 시스템",
                         desc: "정수기 렌탈 상담 도우미",
                         url: "https://sns-rental-system.vercel.app/",
                         icon: "💧",
                         isAdmin: false
                     },
                     {
-                        title: "SNS센터 채팅분석 프로그램",
+                        title: "채팅분석 프로그램",
                         desc: "채널톡 채팅 심층분석",
                         url: "https://chat-analyzer-ql7u.onrender.com/",
                         icon: "📈",
@@ -916,7 +1085,6 @@ const HTML_PAGE = `<!DOCTYPE html>
                     }
                 ];
                 
-                // 관리자 모드가 아니면 일반 메뉴만 필터링
                 let filteredMenus = defaultMenus;
                 if (!isAdminMode) {
                     filteredMenus = defaultMenus.filter(menu => !menu.isAdmin);
@@ -929,13 +1097,7 @@ const HTML_PAGE = `<!DOCTYPE html>
 
         // 메뉴 렌더링
         function renderMenus(menus) {
-            console.log('renderMenus 호출됨, 메뉴 개수:', menus ? menus.length : 0);
             const container = document.getElementById('menuContainer');
-            
-            if (!container) {
-                console.error('menuContainer 요소를 찾을 수 없습니다');
-                return;
-            }
             
             if (!menus || menus.length === 0) {
                 container.innerHTML = '<div class="loading">표시할 메뉴가 없습니다</div>';
@@ -957,14 +1119,9 @@ const HTML_PAGE = `<!DOCTYPE html>
                 
                 newMenu.innerHTML = \`
                     <div class="menu-icon">\${menu.icon}</div>
-                    <div class="menu-content">
-                        <div class="menu-title">
-                            \${menu.title}
-                            \${menu.isAdmin ? '<span class="admin-badge">관리자</span>' : ''}
-                        </div>
-                        <div class="menu-desc">\${menu.desc}</div>
-                    </div>
-                    <div class="menu-arrow">→</div>
+                    <div class="menu-title">\${menu.title}</div>
+                    <div class="menu-desc">\${menu.desc}</div>
+                    \${menu.isAdmin ? '<span class="admin-badge">관리자</span>' : ''}
                     <div class="menu-actions">
                         <button class="action-btn move-btn move-up-btn" data-index="\${index}" \${isFirst ? 'disabled' : ''}>⬆️</button>
                         <button class="action-btn move-btn move-down-btn" data-index="\${index}" \${isLast ? 'disabled' : ''}>⬇️</button>
@@ -1151,19 +1308,19 @@ const HTML_PAGE = `<!DOCTYPE html>
             saveMenus();
         }
 
-        // 메뉴 저장 (전체 메뉴 저장)
+        // 메뉴 저장
         async function saveMenus() {
             const menus = [];
             
-            // 로컬 스토리지에서 전체 메뉴 가져오기
             const savedMenus = localStorage.getItem('customMenus');
             let allMenus = savedMenus ? JSON.parse(savedMenus) : [];
             
-            // 현재 표시된 메뉴 수집
             document.querySelectorAll('.menu-item').forEach(item => {
                 const isAdmin = item.classList.contains('admin-menu');
+                const title = item.querySelector('.menu-title').textContent;
+                
                 menus.push({
-                    title: item.querySelector('.menu-title').textContent.replace(/관리자/g, '').trim(),
+                    title: title,
                     desc: item.querySelector('.menu-desc').textContent,
                     url: item.href,
                     icon: item.querySelector('.menu-icon').textContent,
@@ -1171,7 +1328,6 @@ const HTML_PAGE = `<!DOCTYPE html>
                 });
             });
             
-            // 관리자 모드가 아닌 경우, 숨겨진 관리자 메뉴 보존
             if (!isAdminMode) {
                 const hiddenAdminMenus = allMenus.filter(menu => menu.isAdmin);
                 menus.push(...hiddenAdminMenus);
@@ -1244,11 +1400,10 @@ const HTML_PAGE = `<!DOCTYPE html>
             const menuItem = document.querySelector(\`.menu-item[data-index="\${index}"]\`);
             currentEditIndex = index;
 
-            // 전체 메뉴에서 해당 메뉴 찾기
             const savedMenus = localStorage.getItem('customMenus');
             const allMenus = savedMenus ? JSON.parse(savedMenus) : [];
             
-            const menuTitle = menuItem.querySelector('.menu-title').textContent.replace(/관리자/g, '').trim();
+            const menuTitle = menuItem.querySelector('.menu-title').textContent;
             const menuData = allMenus.find(m => m.title === menuTitle);
 
             document.getElementById('editMenuName').value = menuTitle;
@@ -1285,11 +1440,10 @@ const HTML_PAGE = `<!DOCTYPE html>
                 console.error('서버 수정 오류:', error);
             }
             
-            // 전체 메뉴 업데이트
             const savedMenus = localStorage.getItem('customMenus');
             const allMenus = savedMenus ? JSON.parse(savedMenus) : [];
             
-            const oldTitle = menuItem.querySelector('.menu-title').textContent.replace(/관리자/g, '').trim();
+            const oldTitle = menuItem.querySelector('.menu-title').textContent;
             const menuIndex = allMenus.findIndex(m => m.title === oldTitle);
             
             if (menuIndex !== -1) {
@@ -1324,9 +1478,8 @@ const HTML_PAGE = `<!DOCTYPE html>
                 }
                 
                 const menuItem = document.querySelector(\`.menu-item[data-index="\${index}"]\`);
-                const menuTitle = menuItem.querySelector('.menu-title').textContent.replace(/관리자/g, '').trim();
+                const menuTitle = menuItem.querySelector('.menu-title').textContent;
                 
-                // 전체 메뉴에서 삭제
                 const savedMenus = localStorage.getItem('customMenus');
                 let allMenus = savedMenus ? JSON.parse(savedMenus) : [];
                 allMenus = allMenus.filter(m => m.title !== menuTitle);
@@ -1356,7 +1509,8 @@ const HTML_PAGE = `<!DOCTYPE html>
                     setupDragAndDrop(item);
                 });
                 editBtn.textContent = '편집 모드 종료';
-                editBtn.style.background = '#8b2635';
+                editBtn.style.borderColor = '#ff0000';
+                editBtn.style.color = '#ff0000';
             } else {
                 indicator.classList.remove('active');
                 menuItems.forEach(item => {
@@ -1365,35 +1519,34 @@ const HTML_PAGE = `<!DOCTYPE html>
                     item.onclick = null;
                 });
                 editBtn.textContent = '편집 모드 시작';
-                editBtn.style.background = '#1E6FFF';
+                editBtn.style.borderColor = '#1E6FFF';
+                editBtn.style.color = '#1E6FFF';
             }
             bindButtonEvents();
         }
 
         // 이벤트 리스너 설정
         document.getElementById('settingsBtn').addEventListener('click', function() {
-            if (isPasswordSaved()) {
+            if (checkAdminAuth()) {
                 document.getElementById('settingsPanel').classList.add('active');
                 isAdminMode = true;
                 updateAdminUI();
             } else {
                 document.getElementById('passwordModal').classList.add('active');
-                document.getElementById('passwordTitle').textContent = '비밀번호 입력';
+                document.getElementById('passwordTitle').textContent = '관리자 비밀번호';
                 document.getElementById('passwordInput').focus();
             }
         });
 
-        document.getElementById('passwordConfirmBtn').addEventListener('click', checkPassword);
+        document.getElementById('passwordConfirmBtn').addEventListener('click', checkAdminPassword);
         document.getElementById('passwordCancelBtn').addEventListener('click', closePasswordModal);
 
-        function checkPassword() {
+        function checkAdminPassword() {
             const input = document.getElementById('passwordInput').value;
             const errorMsg = document.getElementById('passwordError');
             
-            if (input === PASSWORD) {
-                // 비밀번호 맞으면 자동으로 관리자 모드 활성화
-                localStorage.setItem('passwordTime', new Date().getTime().toString());
-                localStorage.setItem('adminTime', new Date().getTime().toString());
+            if (input === ADMIN_PASSWORD) {
+                localStorage.setItem('adminAuthTime', new Date().getTime().toString());
                 isAdminMode = true;
                 closePasswordModal();
                 document.getElementById('settingsPanel').classList.add('active');
@@ -1416,7 +1569,7 @@ const HTML_PAGE = `<!DOCTYPE html>
 
         document.getElementById('passwordInput').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
-                checkPassword();
+                checkAdminPassword();
             }
         });
 
@@ -1446,11 +1599,10 @@ const HTML_PAGE = `<!DOCTYPE html>
         });
 
         document.getElementById('logoutBtn').addEventListener('click', function() {
-            localStorage.removeItem('passwordTime');
-            localStorage.removeItem('adminTime');
+            localStorage.removeItem('adminAuthTime');
             isAdminMode = false;
             updateAdminUI();
-            alert('로그아웃되었습니다.');
+            alert('관리자 로그아웃되었습니다.');
             document.getElementById('settingsPanel').classList.remove('active');
             if (editMode) {
                 toggleEditMode();
@@ -1460,27 +1612,6 @@ const HTML_PAGE = `<!DOCTYPE html>
         // 편집 모달 버튼
         document.getElementById('saveEditBtn').addEventListener('click', saveEditMenu);
         document.getElementById('closeEditBtn').addEventListener('click', closeEditModal);
-
-        // 초기화
-        window.addEventListener('load', async function() {
-            // 메뉴 버전 확인 및 업데이트
-            const MENU_VERSION = 'v3.2';
-            const savedVersion = localStorage.getItem('menuVersion');
-            
-            if (savedVersion !== MENU_VERSION) {
-                // 버전이 다르면 메뉴 초기화
-                localStorage.removeItem('customMenus');
-                localStorage.setItem('menuVersion', MENU_VERSION);
-                console.log('메뉴 버전 업데이트:', MENU_VERSION);
-            }
-            
-            // 저장된 비밀번호가 있으면 관리자 모드 활성화
-            if (isPasswordSaved()) {
-                isAdminMode = true;
-            }
-            // updateAdminUI가 loadMenus를 호출하므로 별도로 호출하지 않음
-            updateAdminUI();
-        });
 
         // 클릭 외부 영역 클릭 시 설정 패널 닫기
         document.addEventListener('click', function(e) {
@@ -1528,28 +1659,28 @@ async function initDataFile() {
                         isAdmin: false
                     },
                     {
-                        title: "가망상담건 유치자변경 보고시스템",
+                        title: "가망상담건 유치자변경",
                         desc: "상요 > 가망 유치자공란 건",
                         url: "https://sangyo-system.vercel.app/",
                         icon: "🔄",
                         isAdmin: false
                     },
                     {
-                        title: "취소양식 관리 시스템",
+                        title: "취소양식 관리",
                         desc: "취소양식 생성 및 관리",
                         url: "https://cancel-report.vercel.app/",
                         icon: "📋",
                         isAdmin: false
                     },
                     {
-                        title: "SNS센터 렌탈견적 시스템 - 정수기 편",
+                        title: "렌탈견적 시스템",
                         desc: "정수기 렌탈 상담 도우미",
                         url: "https://sns-rental-system.vercel.app/",
                         icon: "💧",
                         isAdmin: false
                     },
                     {
-                        title: "SNS센터 채팅분석 프로그램",
+                        title: "채팅분석 프로그램",
                         desc: "채널톡 채팅 심층분석",
                         url: "https://chat-analyzer-ql7u.onrender.com/",
                         icon: "📈",
@@ -1582,28 +1713,28 @@ app.get('/api/menus', async (req, res) => {
                 isAdmin: false
             },
             {
-                title: "가망상담건 유치자변경 보고시스템",
+                title: "가망상담건 유치자변경",
                 desc: "상요 > 가망 유치자공란 건",
                 url: "https://sangyo-system.vercel.app/",
                 icon: "🔄",
                 isAdmin: false
             },
             {
-                title: "취소양식 관리 시스템",
+                title: "취소양식 관리",
                 desc: "취소양식 생성 및 관리",
                 url: "https://cancel-report.vercel.app/",
                 icon: "📋",
                 isAdmin: false
             },
             {
-                title: "SNS센터 렌탈견적 시스템 - 정수기 편",
+                title: "렌탈견적 시스템",
                 desc: "정수기 렌탈 상담 도우미",
                 url: "https://sns-rental-system.vercel.app/",
                 icon: "💧",
                 isAdmin: false
             },
             {
-                title: "SNS센터 채팅분석 프로그램",
+                title: "채팅분석 프로그램",
                 desc: "채널톡 채팅 심층분석",
                 url: "https://chat-analyzer-ql7u.onrender.com/",
                 icon: "📈",
@@ -1703,5 +1834,5 @@ app.delete('/api/menus/:index', async (req, res) => {
 // 서버 시작
 app.listen(PORT, '0.0.0.0', async () => {
     await initDataFile();
-    console.log(`서버가 포트 ${PORT}에서 실행 중입니다.`);
+    console.log(\`서버가 포트 \${PORT}에서 실행 중입니다.\`);
 });
