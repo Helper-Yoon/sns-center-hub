@@ -7,6 +7,8 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>SNS센터 업무 허브</title>
+    <!-- Supabase CDN -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -84,6 +86,32 @@
 
         .admin-indicator.active {
             display: block;
+        }
+
+        .sync-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 8px 16px;
+            background: #111;
+            border: 1px solid #444;
+            border-radius: 4px;
+            font-size: 11px;
+            color: #999;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ff0000;
+        }
+
+        .status-dot.online {
+            background: #00ff00;
         }
 
         .menu-grid {
@@ -372,24 +400,120 @@
             letter-spacing: 1px;
         }
 
-        .logout-btn {
+        /* 설정 패널 */
+        .settings-panel {
             position: fixed;
             bottom: 30px;
             left: 30px;
-            padding: 10px 20px;
-            background: transparent;
-            color: #ff0000;
-            border: 1px solid #ff0000;
+            background: #000;
+            border: 1px solid #444;
+            padding: 30px;
+            width: 350px;
+            display: none;
+            z-index: 1000;
+        }
+
+        .settings-panel.active {
+            display: block;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .settings-title {
+            font-size: 15px;
+            font-weight: 300;
+            color: #ffffff;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .settings-item {
+            margin-bottom: 20px;
+        }
+
+        .settings-label {
             font-size: 12px;
+            color: #999;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .settings-input {
+            width: 100%;
+            padding: 10px;
+            background: transparent;
+            border: 1px solid #555;
+            font-size: 15px;
+            color: white;
+        }
+
+        .settings-input:focus {
+            outline: none;
+            border-color: #1E6FFF;
+        }
+
+        .settings-save {
+            width: 100%;
+            padding: 12px;
+            background: transparent;
+            color: #1E6FFF;
+            border: 1px solid #1E6FFF;
+            font-size: 13px;
             cursor: pointer;
+            margin-top: 10px;
             text-transform: uppercase;
             letter-spacing: 1px;
             transition: all 0.2s;
-            display: none;
         }
 
-        .logout-btn.active {
-            display: block;
+        .settings-save:hover {
+            background: #1E6FFF;
+            color: #000;
+        }
+
+        .settings-close {
+            width: 100%;
+            padding: 12px;
+            background: transparent;
+            color: #999;
+            border: 1px solid #555;
+            font-size: 13px;
+            cursor: pointer;
+            margin-top: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.2s;
+        }
+
+        .settings-close:hover {
+            border-color: #999;
+            color: #ccc;
+        }
+
+        .logout-btn {
+            width: 100%;
+            padding: 12px;
+            background: transparent;
+            color: #ff0000;
+            border: 1px solid #ff0000;
+            font-size: 13px;
+            cursor: pointer;
+            margin-top: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.2s;
         }
 
         .logout-btn:hover {
@@ -408,6 +532,35 @@
             letter-spacing: 2px;
         }
 
+        .notification {
+            position: fixed;
+            top: 60px;
+            right: 20px;
+            padding: 12px 20px;
+            background: #111;
+            border: 1px solid #1E6FFF;
+            color: #1E6FFF;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: none;
+            animation: slideIn 0.3s;
+        }
+
+        .notification.show {
+            display: block;
+        }
+
+        .notification.error {
+            border-color: #ff0000;
+            color: #ff0000;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+
         @media (max-width: 768px) {
             .menu-grid {
                 grid-template-columns: 1fr;
@@ -419,6 +572,11 @@
                 bottom: 20px;
                 right: 20px;
             }
+
+            .settings-panel {
+                width: calc(100% - 40px);
+                left: 20px;
+            }
         }
     </style>
 </head>
@@ -427,7 +585,7 @@
     <div class="initial-password-modal" id="initialPasswordModal">
         <div class="initial-password-box">
             <div class="initial-password-logo">SNS센터 <span>업무 허브</span></div>
-            <input type="password" class="initial-password-input" id="initialPasswordInput" placeholder="비밀번호 입력" maxlength="4">
+            <input type="password" class="initial-password-input" id="initialPasswordInput" placeholder="비밀번호 입력" maxlength="10">
             <div><button class="initial-password-btn" id="initialPasswordBtn">접속</button></div>
             <div class="initial-password-error" id="initialPasswordError">비밀번호가 틀렸습니다</div>
         </div>
@@ -435,6 +593,12 @@
 
     <!-- 관리자 모드 표시 -->
     <div class="admin-indicator" id="adminIndicator">👑 관리자 모드</div>
+    
+    <!-- Supabase 연결 상태 -->
+    <div class="sync-status">
+        <div class="status-dot" id="statusDot"></div>
+        <span id="statusText">오프라인</span>
+    </div>
     
     <!-- 메인 컨테이너 -->
     <div class="container" id="mainContainer">
@@ -452,14 +616,11 @@
     <!-- 관리자 버튼 -->
     <button class="admin-btn" id="adminBtn">🔐</button>
 
-    <!-- 로그아웃 버튼 -->
-    <button class="logout-btn" id="logoutBtn">로그아웃</button>
-
     <!-- 관리자 비밀번호 모달 -->
     <div class="password-modal" id="passwordModal">
         <div class="password-box">
             <div class="password-title">관리자 비밀번호</div>
-            <input type="password" class="password-input" id="passwordInput" placeholder="****" maxlength="4">
+            <input type="password" class="password-input" id="passwordInput" placeholder="****" maxlength="10">
             <div class="password-error" id="passwordError">비밀번호가 틀렸습니다</div>
             <div class="password-buttons">
                 <button class="password-btn password-cancel" id="passwordCancelBtn">취소</button>
@@ -468,11 +629,43 @@
         </div>
     </div>
 
+    <!-- 설정 패널 (관리자 전용) -->
+    <div class="settings-panel" id="settingsPanel">
+        <div class="settings-title">비밀번호 관리</div>
+        
+        <div class="settings-item">
+            <div class="settings-label">페이지 접속 비밀번호</div>
+            <input type="text" class="settings-input" id="mainPasswordInput" placeholder="현재: 불러오는 중...">
+        </div>
+        
+        <div class="settings-item">
+            <div class="settings-label">관리자 비밀번호</div>
+            <input type="text" class="settings-input" id="adminPasswordInput" placeholder="현재: 불러오는 중...">
+        </div>
+        
+        <button class="settings-save" id="savePasswordBtn">비밀번호 변경</button>
+        <button class="settings-close" id="closeSettingsBtn">설정 닫기</button>
+        <button class="logout-btn" id="logoutBtn">로그아웃</button>
+    </div>
+
+    <!-- 알림 -->
+    <div class="notification" id="notification"></div>
+
     <script>
-        const MAIN_PASSWORD = '1004';  // 페이지 접속 비밀번호
-        const ADMIN_PASSWORD = '1250';  // 관리자 비밀번호
+        // Supabase 설정
+        const SUPABASE_URL = 'https://bhtqjipygkawoyieidgp.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJodHFqaXB5Z2thd295aWVpZGdwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ0ODg5NjgsImV4cCI6MjA3MDA2NDk2OH0.hu2EAj9RCq436QBtfbEVF4aGOau4WWomLMDKahN4iAA';
+        
+        // Supabase 클라이언트 초기화
+        const { createClient } = window.supabase;
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
+        
+        // 기본 비밀번호 (Supabase 연결 실패 시 사용)
+        let MAIN_PASSWORD = '1004';
+        let ADMIN_PASSWORD = '1250';
         let isAdminMode = false;
         let isAuthenticated = false;
+        let supabaseConnected = false;
 
         // 메뉴 데이터 (고정)
         const menus = [
@@ -527,6 +720,89 @@
             }
         ];
 
+        // Supabase에서 비밀번호 가져오기
+        async function loadPasswordsFromSupabase() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('hub_settings')
+                    .select('*')
+                    .eq('id', 1)
+                    .single();
+                
+                if (error) throw error;
+                
+                if (data) {
+                    MAIN_PASSWORD = data.main_password || '1004';
+                    ADMIN_PASSWORD = data.admin_password || '1250';
+                    supabaseConnected = true;
+                    updateConnectionStatus(true);
+                    
+                    // 관리자 모드일 때 현재 비밀번호 표시
+                    if (isAdminMode) {
+                        document.getElementById('mainPasswordInput').placeholder = `현재: ${MAIN_PASSWORD}`;
+                        document.getElementById('adminPasswordInput').placeholder = `현재: ${ADMIN_PASSWORD}`;
+                    }
+                    
+                    return true;
+                }
+            } catch (error) {
+                console.error('Supabase 연결 오류:', error);
+                updateConnectionStatus(false);
+                return false;
+            }
+        }
+
+        // 연결 상태 업데이트
+        function updateConnectionStatus(online) {
+            const dot = document.getElementById('statusDot');
+            const text = document.getElementById('statusText');
+            
+            if (online) {
+                dot.classList.add('online');
+                text.textContent = '온라인';
+            } else {
+                dot.classList.remove('online');
+                text.textContent = '오프라인';
+            }
+        }
+
+        // 비밀번호 저장 (관리자 전용)
+        async function savePasswordsToSupabase(mainPwd, adminPwd) {
+            try {
+                const { error } = await supabaseClient
+                    .from('hub_settings')
+                    .upsert({
+                        id: 1,
+                        main_password: mainPwd,
+                        admin_password: adminPwd,
+                        updated_at: new Date().toISOString()
+                    });
+                
+                if (error) throw error;
+                
+                MAIN_PASSWORD = mainPwd;
+                ADMIN_PASSWORD = adminPwd;
+                
+                showNotification('비밀번호가 변경되었습니다');
+                return true;
+            } catch (error) {
+                console.error('비밀번호 저장 오류:', error);
+                showNotification('비밀번호 변경 실패', true);
+                return false;
+            }
+        }
+
+        // 알림 표시
+        function showNotification(message, isError = false) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = isError ? 'notification error show' : 'notification show';
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
         // 페이지 접속 인증 확인
         function checkMainAuth() {
             const savedTime = localStorage.getItem('mainAuthTime');
@@ -564,8 +840,11 @@
         }
 
         // 페이지 초기화
-        window.addEventListener('load', function() {
+        window.addEventListener('load', async function() {
             updateDateDisplay();
+            
+            // Supabase에서 비밀번호 로드
+            await loadPasswordsFromSupabase();
             
             // 페이지 접속 인증 확인
             if (checkMainAuth()) {
@@ -578,7 +857,6 @@
                 if (checkAdminAuth()) {
                     isAdminMode = true;
                     document.getElementById('adminIndicator').classList.add('active');
-                    document.getElementById('logoutBtn').classList.add('active');
                 }
                 
                 loadMenus();
@@ -661,14 +939,15 @@
         // 관리자 버튼 클릭
         document.getElementById('adminBtn').addEventListener('click', function() {
             if (checkAdminAuth()) {
-                // 이미 관리자 모드
-                if (isAdminMode) {
-                    // 로그아웃
-                    localStorage.removeItem('adminAuthTime');
-                    isAdminMode = false;
-                    document.getElementById('adminIndicator').classList.remove('active');
-                    document.getElementById('logoutBtn').classList.remove('active');
-                    loadMenus();
+                // 이미 관리자 모드 - 설정 패널 토글
+                const panel = document.getElementById('settingsPanel');
+                if (panel.classList.contains('active')) {
+                    panel.classList.remove('active');
+                } else {
+                    panel.classList.add('active');
+                    // 현재 비밀번호 표시
+                    document.getElementById('mainPasswordInput').placeholder = `현재: ${MAIN_PASSWORD}`;
+                    document.getElementById('adminPasswordInput').placeholder = `현재: ${ADMIN_PASSWORD}`;
                 }
             } else {
                 // 비밀번호 입력 모달 표시
@@ -690,7 +969,12 @@
                 isAdminMode = true;
                 closePasswordModal();
                 document.getElementById('adminIndicator').classList.add('active');
-                document.getElementById('logoutBtn').classList.add('active');
+                document.getElementById('settingsPanel').classList.add('active');
+                
+                // 현재 비밀번호 표시
+                document.getElementById('mainPasswordInput').placeholder = `현재: ${MAIN_PASSWORD}`;
+                document.getElementById('adminPasswordInput').placeholder = `현재: ${ADMIN_PASSWORD}`;
+                
                 loadMenus();
             } else {
                 errorMsg.style.display = 'block';
@@ -713,13 +997,58 @@
             }
         });
 
-        // 로그아웃 버튼
+        // 비밀번호 변경 저장
+        document.getElementById('savePasswordBtn').addEventListener('click', async function() {
+            const mainPwd = document.getElementById('mainPasswordInput').value;
+            const adminPwd = document.getElementById('adminPasswordInput').value;
+            
+            if (!mainPwd || !adminPwd) {
+                showNotification('비밀번호를 입력해주세요', true);
+                return;
+            }
+            
+            if (mainPwd.length < 4 || adminPwd.length < 4) {
+                showNotification('비밀번호는 최소 4자리 이상이어야 합니다', true);
+                return;
+            }
+            
+            // Supabase에 저장
+            const saved = await savePasswordsToSupabase(mainPwd, adminPwd);
+            
+            if (saved) {
+                // 입력 필드 초기화
+                document.getElementById('mainPasswordInput').value = '';
+                document.getElementById('adminPasswordInput').value = '';
+                document.getElementById('mainPasswordInput').placeholder = `현재: ${mainPwd}`;
+                document.getElementById('adminPasswordInput').placeholder = `현재: ${adminPwd}`;
+            }
+        });
+
+        // 설정 패널 닫기
+        document.getElementById('closeSettingsBtn').addEventListener('click', function() {
+            document.getElementById('settingsPanel').classList.remove('active');
+        });
+
+        // 로그아웃
         document.getElementById('logoutBtn').addEventListener('click', function() {
             localStorage.removeItem('adminAuthTime');
             isAdminMode = false;
             document.getElementById('adminIndicator').classList.remove('active');
-            document.getElementById('logoutBtn').classList.remove('active');
+            document.getElementById('settingsPanel').classList.remove('active');
             loadMenus();
+        });
+
+        // 외부 클릭 시 설정 패널 닫기
+        document.addEventListener('click', function(e) {
+            const adminBtn = document.getElementById('adminBtn');
+            const settingsPanel = document.getElementById('settingsPanel');
+            const passwordModal = document.getElementById('passwordModal');
+            
+            if (!adminBtn.contains(e.target) && 
+                !settingsPanel.contains(e.target) && 
+                !passwordModal.contains(e.target)) {
+                settingsPanel.classList.remove('active');
+            }
         });
     </script>
 </body>
