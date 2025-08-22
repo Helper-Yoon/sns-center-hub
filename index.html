@@ -296,6 +296,11 @@
             border-color: #1E6FFF;
         }
 
+        .initial-password-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
         .initial-password-error {
             color: #ff0000;
             font-size: 13px;
@@ -303,6 +308,66 @@
             letter-spacing: 1px;
             margin-top: 20px;
             display: none;
+        }
+
+        /* 연결 오류 화면 */
+        .connection-error {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+
+        .connection-error.active {
+            display: flex;
+        }
+
+        .error-box {
+            text-align: center;
+            max-width: 400px;
+        }
+
+        .error-icon {
+            font-size: 72px;
+            margin-bottom: 30px;
+        }
+
+        .error-title {
+            font-size: 24px;
+            color: #ff0000;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .error-message {
+            font-size: 15px;
+            color: #999;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+
+        .retry-btn {
+            padding: 12px 40px;
+            background: transparent;
+            color: #1E6FFF;
+            border: 1px solid #1E6FFF;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .retry-btn:hover {
+            background: #1E6FFF;
+            color: #000;
         }
 
         /* 관리자 비밀번호 모달 */
@@ -532,28 +597,36 @@
             letter-spacing: 2px;
         }
 
-        .notification {
+        /* 우측 하단 오류 알림 */
+        .error-toast {
             position: fixed;
-            top: 60px;
-            right: 20px;
-            padding: 12px 20px;
+            bottom: 30px;
+            right: 30px;
+            padding: 15px 20px;
             background: #111;
-            border: 1px solid #1E6FFF;
-            color: #1E6FFF;
+            border: 1px solid #ff0000;
+            color: #ff0000;
             font-size: 13px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+            max-width: 300px;
             display: none;
             animation: slideIn 0.3s;
+            z-index: 9000;
         }
 
-        .notification.show {
+        .error-toast.show {
             display: block;
         }
 
-        .notification.error {
-            border-color: #ff0000;
-            color: #ff0000;
+        .error-toast-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .error-toast-message {
+            font-size: 12px;
+            color: #ff9999;
         }
 
         @keyframes slideIn {
@@ -577,10 +650,29 @@
                 width: calc(100% - 40px);
                 left: 20px;
             }
+
+            .error-toast {
+                right: 20px;
+                left: 20px;
+                max-width: none;
+            }
         }
     </style>
 </head>
 <body>
+    <!-- 연결 오류 화면 -->
+    <div class="connection-error" id="connectionError">
+        <div class="error-box">
+            <div class="error-icon">⚠️</div>
+            <div class="error-title">데이터베이스 연결 실패</div>
+            <div class="error-message">
+                보안 시스템에 연결할 수 없습니다.<br>
+                네트워크 연결을 확인하고 다시 시도해주세요.
+            </div>
+            <button class="retry-btn" onclick="location.reload()">다시 시도</button>
+        </div>
+    </div>
+
     <!-- 초기 페이지 비밀번호 -->
     <div class="initial-password-modal" id="initialPasswordModal">
         <div class="initial-password-box">
@@ -597,7 +689,7 @@
     <!-- Supabase 연결 상태 -->
     <div class="sync-status">
         <div class="status-dot" id="statusDot"></div>
-        <span id="statusText">오프라인</span>
+        <span id="statusText">연결 확인 중...</span>
     </div>
     
     <!-- 메인 컨테이너 -->
@@ -648,8 +740,11 @@
         <button class="logout-btn" id="logoutBtn">로그아웃</button>
     </div>
 
-    <!-- 알림 -->
-    <div class="notification" id="notification"></div>
+    <!-- 우측 하단 오류 토스트 -->
+    <div class="error-toast" id="errorToast">
+        <div class="error-toast-title">시스템 오류</div>
+        <div class="error-toast-message" id="errorToastMessage">오류가 발생했습니다</div>
+    </div>
 
     <script>
         // Supabase 설정
@@ -659,21 +754,9 @@
         // Supabase 클라이언트 변수
         let supabaseClient = null;
         
-        // Supabase 초기화 시도
-        try {
-            if (window.supabase && window.supabase.createClient) {
-                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-                console.log('Supabase 연결 성공');
-            } else {
-                console.warn('Supabase 라이브러리를 찾을 수 없습니다. 오프라인 모드로 작동합니다.');
-            }
-        } catch (error) {
-            console.error('Supabase 초기화 오류:', error);
-        }
-        
-        // 기본 비밀번호 (Supabase 연결 실패 시 사용)
-        let MAIN_PASSWORD = '1004';
-        let ADMIN_PASSWORD = '1250';
+        // 비밀번호 변수
+        let MAIN_PASSWORD = null;
+        let ADMIN_PASSWORD = null;
         let isAdminMode = false;
         let isAuthenticated = false;
         let supabaseConnected = false;
@@ -731,11 +814,48 @@
             }
         ];
 
+        // 우측 하단 오류 표시
+        function showErrorToast(message) {
+            const toast = document.getElementById('errorToast');
+            const toastMessage = document.getElementById('errorToastMessage');
+            toastMessage.textContent = message;
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 5000);
+        }
+
+        // Supabase 초기화
+        async function initializeSupabase() {
+            try {
+                if (window.supabase && window.supabase.createClient) {
+                    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                    console.log('Supabase 클라이언트 생성 성공');
+                    
+                    // 연결 테스트
+                    const { data, error } = await supabaseClient
+                        .from('hub_settings')
+                        .select('*')
+                        .eq('id', 1)
+                        .single();
+                    
+                    if (error) throw error;
+                    
+                    return true;
+                } else {
+                    throw new Error('Supabase 라이브러리를 찾을 수 없습니다');
+                }
+            } catch (error) {
+                console.error('Supabase 초기화 실패:', error);
+                showErrorToast('데이터베이스 연결 실패: ' + error.message);
+                return false;
+            }
+        }
+
         // Supabase에서 비밀번호 가져오기
         async function loadPasswordsFromSupabase() {
             if (!supabaseClient) {
-                console.log('Supabase 연결 없음. 기본 비밀번호 사용');
-                updateConnectionStatus(false);
                 return false;
             }
             
@@ -749,8 +869,8 @@
                 if (error) throw error;
                 
                 if (data) {
-                    MAIN_PASSWORD = data.main_password || '1004';
-                    ADMIN_PASSWORD = data.admin_password || '1250';
+                    MAIN_PASSWORD = data.main_password;
+                    ADMIN_PASSWORD = data.admin_password;
                     supabaseConnected = true;
                     updateConnectionStatus(true);
                     
@@ -763,7 +883,8 @@
                     return true;
                 }
             } catch (error) {
-                console.error('Supabase 연결 오류:', error);
+                console.error('비밀번호 로드 실패:', error);
+                showErrorToast('비밀번호 로드 실패');
                 updateConnectionStatus(false);
                 return false;
             }
@@ -776,17 +897,17 @@
             
             if (online) {
                 dot.classList.add('online');
-                text.textContent = '온라인';
+                text.textContent = '보안 연결됨';
             } else {
                 dot.classList.remove('online');
-                text.textContent = '오프라인';
+                text.textContent = '연결 실패';
             }
         }
 
         // 비밀번호 저장 (관리자 전용)
         async function savePasswordsToSupabase(mainPwd, adminPwd) {
-            if (!supabaseClient) {
-                showNotification('Supabase 연결 없음. 오프라인 모드입니다.', true);
+            if (!supabaseClient || !supabaseConnected) {
+                showErrorToast('데이터베이스 연결이 없습니다');
                 return false;
             }
             
@@ -805,24 +926,12 @@
                 MAIN_PASSWORD = mainPwd;
                 ADMIN_PASSWORD = adminPwd;
                 
-                showNotification('비밀번호가 변경되었습니다');
                 return true;
             } catch (error) {
                 console.error('비밀번호 저장 오류:', error);
-                showNotification('비밀번호 변경 실패', true);
+                showErrorToast('비밀번호 변경 실패');
                 return false;
             }
-        }
-
-        // 알림 표시
-        function showNotification(message, isError = false) {
-            const notification = document.getElementById('notification');
-            notification.textContent = message;
-            notification.className = isError ? 'notification error show' : 'notification show';
-            
-            setTimeout(() => {
-                notification.classList.remove('show');
-            }, 3000);
         }
 
         // 페이지 접속 인증 확인
@@ -865,22 +974,29 @@
         window.addEventListener('load', async function() {
             updateDateDisplay();
             
-            // Supabase 초기화 재시도
-            if (!supabaseClient && window.supabase && window.supabase.createClient) {
-                try {
-                    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-                    console.log('Supabase 연결 성공 (재시도)');
-                } catch (error) {
-                    console.error('Supabase 초기화 실패:', error);
-                }
+            // Supabase 초기화 및 연결 확인
+            const connected = await initializeSupabase();
+            
+            if (!connected) {
+                // 연결 실패 - 오류 화면 표시
+                document.getElementById('connectionError').classList.add('active');
+                document.getElementById('initialPasswordModal').classList.add('hidden');
+                updateConnectionStatus(false);
+                return;
             }
             
-            // Supabase에서 비밀번호 로드 (연결되어 있을 경우에만)
-            if (supabaseClient) {
-                await loadPasswordsFromSupabase();
-            } else {
-                updateConnectionStatus(false);
+            // 비밀번호 로드
+            const passwordsLoaded = await loadPasswordsFromSupabase();
+            
+            if (!passwordsLoaded) {
+                // 비밀번호 로드 실패 - 오류 화면 표시
+                document.getElementById('connectionError').classList.add('active');
+                document.getElementById('initialPasswordModal').classList.add('hidden');
+                return;
             }
+            
+            // 정상 작동 - 비밀번호 입력 버튼 활성화
+            document.getElementById('initialPasswordBtn').disabled = false;
             
             // 페이지 접속 인증 확인
             if (checkMainAuth()) {
@@ -909,6 +1025,11 @@
         });
 
         function checkInitialPassword() {
+            if (!MAIN_PASSWORD) {
+                showErrorToast('시스템 오류: 비밀번호를 확인할 수 없습니다');
+                return;
+            }
+            
             const input = document.getElementById('initialPasswordInput').value;
             const errorMsg = document.getElementById('initialPasswordError');
             
@@ -974,6 +1095,11 @@
 
         // 관리자 버튼 클릭
         document.getElementById('adminBtn').addEventListener('click', function() {
+            if (!supabaseConnected) {
+                showErrorToast('데이터베이스 연결이 필요합니다');
+                return;
+            }
+            
             if (checkAdminAuth()) {
                 // 이미 관리자 모드 - 설정 패널 토글
                 const panel = document.getElementById('settingsPanel');
@@ -997,6 +1123,11 @@
         document.getElementById('passwordCancelBtn').addEventListener('click', closePasswordModal);
 
         function checkAdminPassword() {
+            if (!ADMIN_PASSWORD) {
+                showErrorToast('시스템 오류: 관리자 비밀번호를 확인할 수 없습니다');
+                return;
+            }
+            
             const input = document.getElementById('passwordInput').value;
             const errorMsg = document.getElementById('passwordError');
             
@@ -1035,29 +1166,21 @@
 
         // 비밀번호 변경 저장
         document.getElementById('savePasswordBtn').addEventListener('click', async function() {
+            if (!supabaseConnected) {
+                showErrorToast('데이터베이스 연결이 필요합니다');
+                return;
+            }
+            
             const mainPwd = document.getElementById('mainPasswordInput').value;
             const adminPwd = document.getElementById('adminPasswordInput').value;
             
             if (!mainPwd || !adminPwd) {
-                showNotification('비밀번호를 입력해주세요', true);
+                showErrorToast('비밀번호를 입력해주세요');
                 return;
             }
             
             if (mainPwd.length < 4 || adminPwd.length < 4) {
-                showNotification('비밀번호는 최소 4자리 이상이어야 합니다', true);
-                return;
-            }
-            
-            if (!supabaseClient) {
-                // Supabase 연결이 없으면 로컬에만 저장
-                MAIN_PASSWORD = mainPwd;
-                ADMIN_PASSWORD = adminPwd;
-                showNotification('비밀번호가 변경되었습니다 (오프라인 모드)');
-                
-                document.getElementById('mainPasswordInput').value = '';
-                document.getElementById('adminPasswordInput').value = '';
-                document.getElementById('mainPasswordInput').placeholder = `현재: ${mainPwd}`;
-                document.getElementById('adminPasswordInput').placeholder = `현재: ${adminPwd}`;
+                showErrorToast('비밀번호는 최소 4자리 이상이어야 합니다');
                 return;
             }
             
@@ -1070,6 +1193,7 @@
                 document.getElementById('adminPasswordInput').value = '';
                 document.getElementById('mainPasswordInput').placeholder = `현재: ${mainPwd}`;
                 document.getElementById('adminPasswordInput').placeholder = `현재: ${adminPwd}`;
+                alert('비밀번호가 변경되었습니다');
             }
         });
 
