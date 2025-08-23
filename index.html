@@ -40,43 +40,46 @@
 
         .header {
             text-align: center;
-            margin-bottom: 50px;
+            margin-bottom: 60px;
         }
 
         .header h1 {
-            font-size: 48px;
+            font-size: 52px;
             font-weight: 200;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
+            letter-spacing: -0.5px;
         }
 
         .header h1 span {
-            color: #1E6FFF;
+            color: #4A8FFF;
             font-weight: 400;
         }
 
         .date-display {
-            color: #999;
-            font-size: 15px;
+            color: #b3b3b3;
+            font-size: 16px;
             text-transform: uppercase;
             letter-spacing: 2px;
-            margin-bottom: 5px;
+            margin-bottom: 8px;
+            font-weight: 300;
         }
 
         .sub-info {
-            color: #1E6FFF;
-            font-size: 19px;
-            margin-top: 10px;
+            color: #4A8FFF;
+            font-size: 20px;
+            margin-top: 12px;
+            font-weight: 300;
         }
 
         .admin-indicator {
             position: fixed;
             top: 20px;
             left: 20px;
-            padding: 8px 16px;
+            padding: 10px 18px;
             background: #FFD700;
             color: #000;
-            border-radius: 4px;
-            font-size: 12px;
+            border-radius: 6px;
+            font-size: 13px;
             font-weight: bold;
             display: none;
             z-index: 1001;
@@ -92,40 +95,41 @@
             position: fixed;
             top: 20px;
             right: 20px;
-            padding: 8px 16px;
+            padding: 10px 18px;
             background: #111;
-            border: 1px solid #444;
-            border-radius: 4px;
-            font-size: 11px;
-            color: #999;
+            border: 1px solid #666;
+            border-radius: 6px;
+            font-size: 12px;
+            color: #b3b3b3;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
         }
 
         .status-dot {
             width: 8px;
             height: 8px;
             border-radius: 50%;
-            background: #ff0000;
+            background: #ff4444;
         }
 
         .status-dot.online {
-            background: #00ff00;
+            background: #44ff44;
         }
 
         .menu-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-            gap: 2px;
-            background: #111;
-            padding: 2px;
+            gap: 3px;
+            background: #1a1a1a;
+            padding: 3px;
             margin-bottom: 50px;
+            border-radius: 2px;
         }
 
         .menu-item {
             background: #000;
-            padding: 30px;
+            padding: 35px;
             text-decoration: none;
             transition: all 0.3s;
             cursor: pointer;
@@ -138,68 +142,73 @@
         }
 
         .menu-item:hover {
-            background: #050505;
-            border-color: #1E6FFF;
+            background: #0a0a0a;
+            border-color: #4A8FFF;
             transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(74, 143, 255, 0.2);
         }
 
         .menu-item.admin-menu {
-            background: linear-gradient(135deg, #000 0%, #0a0a00 100%);
+            background: linear-gradient(135deg, #000 0%, #0d0d00 100%);
         }
 
         .menu-item.admin-menu:hover {
             border-color: #FFD700;
+            box-shadow: 0 4px 12px rgba(255, 215, 0, 0.2);
         }
 
         .menu-icon {
-            width: 60px;
-            height: 60px;
-            background: #111;
-            border: 1px solid #444;
-            border-radius: 12px;
+            width: 64px;
+            height: 64px;
+            background: #1a1a1a;
+            border: 1px solid #666;
+            border-radius: 14px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 20px;
-            font-size: 30px;
+            margin-bottom: 24px;
+            font-size: 32px;
         }
 
         .menu-item:hover .menu-icon {
-            border-color: #1E6FFF;
-            background: #0a0a0a;
+            border-color: #4A8FFF;
+            background: #111;
         }
 
         .menu-item.admin-menu .menu-icon {
-            border-color: #555500;
+            border-color: #666600;
         }
 
         .menu-item.admin-menu:hover .menu-icon {
             border-color: #FFD700;
+            background: #1a1a00;
         }
 
         .menu-title {
-            font-size: 17px;
-            font-weight: 300;
+            font-size: 18px;
+            font-weight: 400;
             color: #ffffff;
-            margin-bottom: 8px;
-            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+            letter-spacing: 0.3px;
+            line-height: 1.3;
         }
 
         .menu-desc {
-            font-size: 13px;
-            color: #999;
+            font-size: 14px;
+            color: #b3b3b3;
             text-transform: uppercase;
             letter-spacing: 1px;
+            font-weight: 300;
         }
 
         .admin-badge {
             display: inline-block;
-            margin-top: 10px;
-            padding: 4px 8px;
+            margin-top: 12px;
+            padding: 5px 10px;
             background: #FFD700;
             color: #000;
             border-radius: 4px;
-            font-size: 11px;
+            font-size: 12px;
             font-weight: bold;
             text-transform: uppercase;
             letter-spacing: 1px;
@@ -209,23 +218,25 @@
             position: fixed;
             bottom: 30px;
             right: 30px;
-            width: 50px;
-            height: 50px;
+            width: 52px;
+            height: 52px;
             background: transparent;
-            border: 1px solid #555;
+            border: 1px solid #666;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #999;
-            font-size: 22px;
+            color: #b3b3b3;
+            font-size: 24px;
             cursor: pointer;
             transition: all 0.3s;
+            border-radius: 8px;
         }
 
         .admin-btn:hover {
-            border-color: #1E6FFF;
-            color: #1E6FFF;
+            border-color: #4A8FFF;
+            color: #4A8FFF;
             transform: scale(1.1);
+            background: rgba(74, 143, 255, 0.1);
         }
 
         /* 초기 페이지 비밀번호 모달 */
@@ -251,49 +262,54 @@
         }
 
         .initial-password-logo {
-            font-size: 48px;
+            font-size: 52px;
             font-weight: 200;
-            margin-bottom: 40px;
+            margin-bottom: 45px;
+            letter-spacing: -0.5px;
         }
 
         .initial-password-logo span {
-            color: #1E6FFF;
+            color: #4A8FFF;
             font-weight: 400;
         }
 
         .initial-password-input {
-            width: 300px;
-            padding: 15px;
+            width: 320px;
+            padding: 16px;
             background: transparent;
-            border: 1px solid #555;
+            border: 1px solid #666;
             color: white;
-            font-size: 19px;
+            font-size: 20px;
             text-align: center;
             letter-spacing: 5px;
-            margin-bottom: 20px;
+            margin-bottom: 24px;
+            border-radius: 8px;
         }
 
         .initial-password-input:focus {
             outline: none;
-            border-color: #1E6FFF;
+            border-color: #4A8FFF;
+            box-shadow: 0 0 0 2px rgba(74, 143, 255, 0.2);
         }
 
         .initial-password-btn {
-            padding: 12px 40px;
+            padding: 14px 45px;
             background: transparent;
-            color: #999;
-            border: 1px solid #555;
-            font-size: 15px;
+            color: #b3b3b3;
+            border: 1px solid #666;
+            font-size: 16px;
             font-weight: 500;
             letter-spacing: 1px;
             text-transform: uppercase;
             cursor: pointer;
             transition: all 0.3s;
+            border-radius: 6px;
         }
 
         .initial-password-btn:hover {
-            color: #1E6FFF;
-            border-color: #1E6FFF;
+            color: #4A8FFF;
+            border-color: #4A8FFF;
+            background: rgba(74, 143, 255, 0.1);
         }
 
         .initial-password-btn:disabled {
@@ -302,12 +318,13 @@
         }
 
         .initial-password-error {
-            color: #ff0000;
-            font-size: 13px;
+            color: #ff4444;
+            font-size: 14px;
             text-transform: uppercase;
             letter-spacing: 1px;
             margin-top: 20px;
             display: none;
+            font-weight: 500;
         }
 
         /* 연결 오류 화면 */
@@ -339,34 +356,36 @@
         }
 
         .error-title {
-            font-size: 24px;
-            color: #ff0000;
+            font-size: 26px;
+            color: #ff4444;
             margin-bottom: 20px;
             text-transform: uppercase;
             letter-spacing: 2px;
+            font-weight: 400;
         }
 
         .error-message {
-            font-size: 15px;
-            color: #999;
+            font-size: 16px;
+            color: #b3b3b3;
             line-height: 1.6;
-            margin-bottom: 30px;
+            margin-bottom: 35px;
         }
 
         .retry-btn {
-            padding: 12px 40px;
+            padding: 14px 45px;
             background: transparent;
-            color: #1E6FFF;
-            border: 1px solid #1E6FFF;
-            font-size: 14px;
+            color: #4A8FFF;
+            border: 1px solid #4A8FFF;
+            font-size: 15px;
             text-transform: uppercase;
             letter-spacing: 1px;
             cursor: pointer;
             transition: all 0.3s;
+            border-radius: 6px;
         }
 
         .retry-btn:hover {
-            background: #1E6FFF;
+            background: #4A8FFF;
             color: #000;
         }
 
@@ -377,7 +396,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.9);
+            background: rgba(0,0,0,0.95);
             display: none;
             align-items: center;
             justify-content: center;
@@ -390,79 +409,86 @@
 
         .password-box {
             background: #000;
-            border: 1px solid #444;
-            padding: 40px;
-            width: 350px;
+            border: 1px solid #666;
+            padding: 45px;
+            width: 380px;
+            border-radius: 8px;
         }
 
         .password-title {
             color: #ffffff;
-            font-size: 17px;
+            font-size: 18px;
             margin-bottom: 30px;
             text-align: center;
             text-transform: uppercase;
             letter-spacing: 2px;
-            font-weight: 300;
+            font-weight: 400;
         }
 
         .password-input {
             width: 100%;
-            padding: 15px;
+            padding: 16px;
             background: transparent;
-            border: 1px solid #555;
+            border: 1px solid #666;
             color: white;
-            font-size: 17px;
+            font-size: 18px;
             text-align: center;
             letter-spacing: 5px;
+            border-radius: 6px;
         }
 
         .password-input:focus {
             outline: none;
-            border-color: #1E6FFF;
+            border-color: #4A8FFF;
+            box-shadow: 0 0 0 2px rgba(74, 143, 255, 0.2);
         }
 
         .password-buttons {
             display: flex;
-            gap: 10px;
+            gap: 12px;
             margin-top: 30px;
         }
 
         .password-btn {
             flex: 1;
-            padding: 12px;
-            border: 1px solid #555;
+            padding: 14px;
+            border: 1px solid #666;
             background: transparent;
-            color: #999;
-            font-size: 13px;
+            color: #b3b3b3;
+            font-size: 14px;
             cursor: pointer;
             transition: all 0.2s;
             text-transform: uppercase;
             letter-spacing: 1px;
+            border-radius: 6px;
+            font-weight: 500;
         }
 
         .password-confirm {
-            color: #1E6FFF;
-            border-color: #1E6FFF;
+            color: #4A8FFF;
+            border-color: #4A8FFF;
         }
 
         .password-confirm:hover {
-            background: #1E6FFF;
+            background: #4A8FFF;
             color: #000;
         }
 
         .password-cancel:hover {
-            border-color: #999;
-            color: #ccc;
+            border-color: #b3b3b3;
+            color: #fff;
+            background: rgba(255, 255, 255, 0.05);
         }
 
         .password-error {
-            color: #ff0000;
-            font-size: 12px;
+            color: #ff4444;
+            font-size: 13px;
             text-align: center;
             margin-top: 15px;
             display: none;
             text-transform: uppercase;
             letter-spacing: 1px;
+            font-weight: 500;
         }
 
         /* 설정 패널 */
@@ -471,11 +497,12 @@
             bottom: 30px;
             left: 30px;
             background: #000;
-            border: 1px solid #444;
-            padding: 30px;
-            width: 350px;
+            border: 1px solid #666;
+            padding: 35px;
+            width: 380px;
             display: none;
             z-index: 1000;
+            border-radius: 8px;
         }
 
         .settings-panel.active {
@@ -495,94 +522,104 @@
         }
 
         .settings-title {
-            font-size: 15px;
-            font-weight: 300;
+            font-size: 16px;
+            font-weight: 400;
             color: #ffffff;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
             text-transform: uppercase;
             letter-spacing: 2px;
         }
 
         .settings-item {
-            margin-bottom: 20px;
+            margin-bottom: 24px;
         }
 
         .settings-label {
-            font-size: 12px;
-            color: #999;
-            margin-bottom: 8px;
+            font-size: 13px;
+            color: #b3b3b3;
+            margin-bottom: 10px;
             text-transform: uppercase;
             letter-spacing: 1px;
+            font-weight: 400;
         }
 
         .settings-input {
             width: 100%;
-            padding: 10px;
+            padding: 12px;
             background: transparent;
-            border: 1px solid #555;
-            font-size: 15px;
+            border: 1px solid #666;
+            font-size: 16px;
             color: white;
+            border-radius: 6px;
         }
 
         .settings-input:focus {
             outline: none;
-            border-color: #1E6FFF;
+            border-color: #4A8FFF;
+            box-shadow: 0 0 0 2px rgba(74, 143, 255, 0.2);
         }
 
         .settings-save {
             width: 100%;
-            padding: 12px;
+            padding: 14px;
             background: transparent;
-            color: #1E6FFF;
-            border: 1px solid #1E6FFF;
-            font-size: 13px;
+            color: #4A8FFF;
+            border: 1px solid #4A8FFF;
+            font-size: 14px;
             cursor: pointer;
-            margin-top: 10px;
+            margin-top: 12px;
             text-transform: uppercase;
             letter-spacing: 1px;
             transition: all 0.2s;
+            border-radius: 6px;
+            font-weight: 500;
         }
 
         .settings-save:hover {
-            background: #1E6FFF;
+            background: #4A8FFF;
             color: #000;
         }
 
         .settings-close {
             width: 100%;
-            padding: 12px;
+            padding: 14px;
             background: transparent;
-            color: #999;
-            border: 1px solid #555;
-            font-size: 13px;
+            color: #b3b3b3;
+            border: 1px solid #666;
+            font-size: 14px;
             cursor: pointer;
-            margin-top: 10px;
+            margin-top: 12px;
             text-transform: uppercase;
             letter-spacing: 1px;
             transition: all 0.2s;
+            border-radius: 6px;
+            font-weight: 500;
         }
 
         .settings-close:hover {
-            border-color: #999;
-            color: #ccc;
+            border-color: #b3b3b3;
+            color: #fff;
+            background: rgba(255, 255, 255, 0.05);
         }
 
         .logout-btn {
             width: 100%;
-            padding: 12px;
+            padding: 14px;
             background: transparent;
-            color: #ff0000;
-            border: 1px solid #ff0000;
-            font-size: 13px;
+            color: #ff4444;
+            border: 1px solid #ff4444;
+            font-size: 14px;
             cursor: pointer;
-            margin-top: 10px;
+            margin-top: 12px;
             text-transform: uppercase;
             letter-spacing: 1px;
             transition: all 0.2s;
+            border-radius: 6px;
+            font-weight: 500;
         }
 
         .logout-btn:hover {
-            background: #ff0000;
+            background: #ff4444;
             color: #000;
         }
 
@@ -591,8 +628,8 @@
             justify-content: center;
             align-items: center;
             padding: 100px;
-            color: #999;
-            font-size: 15px;
+            color: #b3b3b3;
+            font-size: 16px;
             text-transform: uppercase;
             letter-spacing: 2px;
         }
@@ -602,15 +639,16 @@
             position: fixed;
             bottom: 30px;
             right: 30px;
-            padding: 15px 20px;
+            padding: 18px 24px;
             background: #111;
-            border: 1px solid #ff0000;
-            color: #ff0000;
-            font-size: 13px;
-            max-width: 300px;
+            border: 1px solid #ff4444;
+            color: #ff4444;
+            font-size: 14px;
+            max-width: 320px;
             display: none;
             animation: slideIn 0.3s;
             z-index: 9000;
+            border-radius: 6px;
         }
 
         .error-toast.show {
@@ -619,14 +657,16 @@
 
         .error-toast-title {
             font-weight: bold;
-            margin-bottom: 5px;
+            margin-bottom: 6px;
             text-transform: uppercase;
             letter-spacing: 1px;
+            font-size: 13px;
         }
 
         .error-toast-message {
-            font-size: 12px;
-            color: #ff9999;
+            font-size: 13px;
+            color: #ffaaaa;
+            line-height: 1.4;
         }
 
         @keyframes slideIn {
@@ -635,13 +675,17 @@
         }
 
         @media (max-width: 768px) {
+            .header h1 {
+                font-size: 42px;
+            }
+            
             .menu-grid {
                 grid-template-columns: 1fr;
             }
             
             .admin-btn {
-                width: 45px;
-                height: 45px;
+                width: 48px;
+                height: 48px;
                 bottom: 20px;
                 right: 20px;
             }
